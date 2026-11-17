@@ -37,3 +37,9 @@ html {
 .skip-link:focus {
   top: 8px;
 }
+
+/* Bangla script has tall conjuncts and vowel signs above and below the line;
+   give it more line height than Latin text (see docs/design.md). */
+:lang(bn) {
+  line-height: 1.9;
+}
