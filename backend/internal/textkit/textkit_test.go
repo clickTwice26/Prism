@@ -33,3 +33,18 @@ func TestGradeLevelOnlyEnglish(t *testing.T) {
 		t.Fatal("expected nil grade for Bangla")
 	}
 }
+
+func TestChunksGroupsShortSentencesAndSplitsBangla(t *testing.T) {
+	got := Chunks("One. Two three. Four five six seven. Eight.", 40)
+	if len(got) != 2 || got[0] != "One. Two three." || got[1] != "Four five six seven. Eight." {
+		t.Fatalf("got %q", got)
+	}
+	bn := Chunks("গাছ খাবার তৈরি করে। এতে আলো লাগে। পাতা সবুজ।", 40)
+	if len(bn) != 2 {
+		t.Fatalf("expected 2 Bangla chunks, got %q", bn)
+	}
+	long := Chunks(strings.Repeat("word ", 30)+". "+strings.Repeat("word ", 30)+".", 40)
+	if len(long) != 2 {
+		t.Fatalf("long sentences should not share a chunk, got %d", len(long))
+	}
+}

@@ -126,3 +126,39 @@ func Simplify(text, lang string) string {
 	}
 	return strings.Join(out, " ")
 }
+
+// sentenceEnd matches the end of a sentence in English, Malay or Bangla (the
+// Bangla full stop is the dari, "।").
+var sentenceEnd = regexp.MustCompile(`([.!?।])\s+`)
+
+// Chunks splits lesson text into short parts of one or two sentences (up to
+// about maxWords words each), so a learner meets one idea at a time before a
+// question (Pimenova et al., 2026).
+func Chunks(text string, maxWords int) []string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+	var sentences []string
+	for _, s := range strings.Split(sentenceEnd.ReplaceAllString(text, "$1\n"), "\n") {
+		if s = strings.TrimSpace(s); s != "" {
+			sentences = append(sentences, s)
+		}
+	}
+	var chunks []string
+	var cur []string
+	words := 0
+	for _, s := range sentences {
+		n := len(strings.Fields(s))
+		if len(cur) > 0 && (len(cur) >= 2 || words+n > maxWords) {
+			chunks = append(chunks, strings.Join(cur, " "))
+			cur, words = nil, 0
+		}
+		cur = append(cur, s)
+		words += n
+	}
+	if len(cur) > 0 {
+		chunks = append(chunks, strings.Join(cur, " "))
+	}
+	return chunks
+}
