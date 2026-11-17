@@ -13,6 +13,7 @@ export interface Settings {
   wordSpacing: number; // extra em between words (Galliussi et al., 2020)
   readAlong: boolean; // highlight each word while reading aloud
   speechRate: number;
+  sidebarCollapsed: boolean; // desktop sidebar shows icons only
 }
 
 const DEFAULTS: Settings = {
@@ -22,6 +23,7 @@ const DEFAULTS: Settings = {
   wordSpacing: 0,
   readAlong: true,
   speechRate: 1,
+  sidebarCollapsed: false,
 };
 
 const KEY = "prism.settings.v1";
