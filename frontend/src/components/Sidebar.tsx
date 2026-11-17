@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
+import Badge from "@mui/material/Badge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -20,10 +21,13 @@ import {
   Home01Icon,
   MagicWand01Icon,
   PrismIcon,
+  SecurityCheckIcon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
+  Target02Icon,
   Video01Icon,
 } from "@hugeicons/core-free-icons";
+import { reviewCount } from "@/lib/api";
 import { Icon } from "./Icon";
 
 interface NavItem {
@@ -38,6 +42,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: "Learn",
     items: [
+      { href: "/learn", label: "Adaptive lesson", hint: "Learns what helps you", icon: Target02Icon },
       { href: "/read", label: "Read & images", hint: "Listen and describe", icon: BookOpen01Icon },
       { href: "/simplify", label: "Simplify", hint: "Plain words and quiz", icon: MagicWand01Icon },
       { href: "/live", label: "Live class", hint: "Captions and video", icon: Video01Icon },
@@ -45,7 +50,10 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   },
   {
     title: "Teach",
-    items: [{ href: "/study", label: "Study", hint: "Measure the impact", icon: Analytics01Icon }],
+    items: [
+      { href: "/review", label: "Review", hint: "Check AI before learners", icon: SecurityCheckIcon },
+      { href: "/study", label: "Study", hint: "Measure the impact", icon: Analytics01Icon },
+    ],
   },
 ];
 
@@ -62,8 +70,24 @@ interface Props {
 // Shared sidebar body for the permanent desktop drawer and the mobile drawer.
 export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggleCollapse }: Props) {
   const pathname = usePathname();
+  const [pending, setPending] = useState(0);
 
-  const row = (item: { key: string; label: string; hint?: string; icon: IconSvgElement }, props: object, selected = false) => (
+  // Show teachers how many AI outputs wait for review.
+  useEffect(() => {
+    const load = () =>
+      reviewCount()
+        .then(setPending)
+        .catch(() => setPending(0));
+    load();
+    window.addEventListener("prism:review-changed", load);
+    return () => window.removeEventListener("prism:review-changed", load);
+  }, [pathname]);
+
+  const row = (
+    item: { key: string; label: string; hint?: string; icon: IconSvgElement; badge?: number },
+    props: object,
+    selected = false,
+  ) => (
     <Tooltip key={item.key} title={collapsed ? item.label : ""} placement="right" arrow>
       <ListItemButton
         selected={selected}
@@ -86,7 +110,14 @@ export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggle
         })}
       >
         <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 1.75, color: "inherit" }}>
-          <Icon icon={item.icon} size={22} />
+          <Badge
+            color="error"
+            badgeContent={item.badge}
+            invisible={!item.badge}
+            slotProps={{ badge: { "aria-label": `${item.badge} waiting` } }}
+          >
+            <Icon icon={item.icon} size={22} />
+          </Badge>
         </ListItemIcon>
         {!collapsed && (
           <ListItemText
@@ -163,7 +194,13 @@ export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggle
             <List disablePadding>
               {section.items.map((item) =>
                 row(
-                  { key: item.href, label: item.label, hint: item.hint, icon: item.icon },
+                  {
+                    key: item.href,
+                    label: item.label,
+                    hint: item.hint,
+                    icon: item.icon,
+                    badge: item.href === "/review" ? pending : undefined,
+                  },
                   { component: Link, href: item.href, onClick: onNavigate },
                   isActive(pathname, item.href),
                 ),
