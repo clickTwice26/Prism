@@ -77,11 +77,11 @@ in `live:{code}:video`; both expire after 12 hours.
 | --- | --- |
 | `src/app/*` | Routes: `/`, `/read`, `/simplify`, `/live`, `/study` |
 | `src/features/*` | One folder per area; screens are client components |
-| `src/components` | App shell with tab navigation, reading-settings drawer, announcer (live region + snackbar), readable text, icon wrapper |
+| `src/components` | App shell with a collapsible sidebar (a drawer on mobile), reading-settings drawer, announcer (live region + snackbar), readable text, icon wrapper |
 | `src/lib/api.ts` | Typed API client. The API base is `NEXT_PUBLIC_API_URL`, else the page's host on port 8080 |
 | `src/lib/settings.tsx` | Per-learner settings in `localStorage`: language, colours (light, dark, high contrast), text size, word spacing, read-along, speech rate |
 | `src/lib/useReadAloud.ts` | Read-along uses the browser voice with word-boundary highlighting; otherwise server speech, falling back to the browser |
-| `src/lib/theme.ts` | MUI theme built from settings, including a strong focus ring |
+| `src/lib/theme.ts` | MUI theme: type scale, colour modes and a strong focus ring. See [design.md](design.md) |
 
 ## Research behind the features
 

@@ -32,6 +32,9 @@ cd frontend && npm run typecheck && npm run lint && npm run build
 - **Go:** standard library `net/http` routing, `pgx/v5`, `go-redis/v9`, `coder/websocket`. Add a
   new SQL file in `internal/store/migrations` for schema changes; never edit an applied migration.
   Run `gofmt` before committing.
+- **Design:** follow [docs/design.md](docs/design.md) for fonts, the type scale, the sidebar and
+  layout. Use theme typography variants (`display`, `h1`–`h6`, `lead`, `reading`, `liveCaption`,
+  …), never one-off `fontSize` values. New pages go in `NAV_SECTIONS` in `Sidebar.tsx`.
 - **Frontend:** MUI 9 only, with no Tailwind. MUI 9 removed system props on `Box`, `Stack` and
   `Typography`, and the old `inputProps`/`InputProps`, so use `sx` and `slotProps`. Icons come from
   `@hugeicons/core-free-icons` through `src/components/Icon.tsx`. Fonts are Onest, with Noto Sans

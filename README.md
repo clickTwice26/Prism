@@ -63,7 +63,7 @@ docker compose --profile app up --build
 ```
 backend/    Go API: REST + live-class WebSocket
 frontend/   Next.js web app
-docs/       Architecture, API and research notes
+docs/       Architecture, API, design guide and research notes
 CLAUDE.md   Working rules for AI-assisted development
 ```
 
