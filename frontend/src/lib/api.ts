@@ -72,17 +72,17 @@ export interface Lesson {
 }
 export const listLessons = () => request<Lesson[]>("/api/lessons");
 
-export interface FactCheck {
-  faithful: boolean;
-  issues: string[];
-}
+// How far an AI output can be trusted (the fidelity gate, N2).
+export type Verification = "teacher_verified" | "auto_verified" | "pending_review" | "rules" | "original";
+
 export interface SimplifyResult {
   original: string;
   simplified: string;
-  source: "ai" | "rules";
+  verification: Verification;
+  repaired: boolean;
+  review_id?: number;
   grade_before: number | null;
   grade_after: number | null;
-  fact_check: FactCheck | null;
 }
 export const simplify = (text: string, lang: Lang) => post<SimplifyResult>("/api/simplify", { text, lang });
 
@@ -97,8 +97,14 @@ export const makeQuiz = (text: string, lang: Lang, count = 3) =>
 export const translate = (text: string, targetLang: Lang) =>
   post<{ translated: string }>("/api/translate", { text, target_lang: targetLang }).then((r) => r.translated);
 
+export interface DescribeResult {
+  description: string;
+  verification: Verification;
+  disputed: number;
+  review_id?: number;
+}
 export const describeImage = (imageDataUrl: string, lang: Lang, detail: "short" | "detailed") =>
-  post<{ description: string; ai_generated: boolean }>("/api/describe-image", {
+  post<DescribeResult>("/api/describe-image", {
     image_data_url: imageDataUrl,
     lang,
     detail,
@@ -166,3 +172,105 @@ export const addParticipant = (p: { code: string; profile: string; notes: string
 export const listResults = () => request<StudyResult[]>("/api/study/results");
 export const addResult = (r: Omit<StudyResult, "id" | "created_at">) => post<StudyResult>("/api/study/results", r);
 export const getStudySummary = () => request<StudySummary>("/api/study/summary");
+
+// ---- Review queue (N2) ----
+export interface ReviewItem {
+  id: number;
+  kind: "simplify" | "describe";
+  lang: Lang;
+  variant: string;
+  input_text: string;
+  input_image: string;
+  ai_output: string;
+  safe_output: string;
+  issues: string[];
+  status: "pending" | "approved" | "rejected";
+  final_output: string | null;
+  created_at: string;
+}
+export const listReviews = (status: "pending" | "approved" | "rejected" = "pending") =>
+  request<ReviewItem[]>(`/api/review?status=${status}`);
+export const reviewCount = () => request<{ pending: number }>("/api/review/count").then((r) => r.pending);
+export const approveReview = (id: number, output: string) => post<ReviewItem>(`/api/review/${id}/approve`, { output });
+export const rejectReview = (id: number) => request<ReviewItem>(`/api/review/${id}/reject`, { method: "POST" });
+
+// ---- Adaptive lessons (N1) ----
+export const PROFILES: { value: string; label: string }[] = [
+  { value: "blind", label: "Blind" },
+  { value: "low_vision", label: "Low vision" },
+  { value: "deaf", label: "Deaf" },
+  { value: "hard_of_hearing", label: "Hard of hearing" },
+  { value: "dyslexia", label: "Dyslexia" },
+  { value: "autism", label: "Autism" },
+  { value: "intellectual_disability", label: "Intellectual disability" },
+  { value: "adhd", label: "ADHD" },
+  { value: "none", label: "No disability" },
+];
+export const profileLabel = (p: string) => PROFILES.find((x) => x.value === p)?.label ?? p;
+
+export interface Learner {
+  id: number;
+  code: string;
+  profile: string;
+  lang: Lang;
+  created_at: string;
+}
+export const listLearners = () => request<Learner[]>("/api/learners");
+export const addLearner = (l: { code: string; profile: string; lang: Lang }) => post<Learner>("/api/learners", l);
+
+export interface Mix {
+  simple: boolean;
+  audio: boolean;
+  picture: boolean;
+}
+export interface Arm {
+  mix: Mix;
+  key: string;
+  tries: number;
+  correct: number;
+  estimate: number;
+  default: boolean;
+}
+export interface Insights {
+  learner: Learner;
+  answered: number;
+  default_mix: string;
+  best_mix: string;
+  confident: boolean;
+  differs_from_default: boolean;
+  arms: Arm[];
+}
+export const getInsights = (learnerId: number) => request<Insights>(`/api/learners/${learnerId}/insights`);
+
+export interface ChunkView {
+  attempt_id: number;
+  chunk: number;
+  total_chunks: number;
+  mix: Mix;
+  mix_key: string;
+  reason: string;
+  text: string;
+  original_text: string;
+  verification: Verification;
+  lang: Lang;
+  question: { question: string; options: string[] };
+}
+export const nextChunk = (learnerId: number, lessonId: number, chunk: number) =>
+  post<ChunkView>("/api/learn/next", { learner_id: learnerId, lesson_id: lessonId, chunk });
+
+export interface AnswerResult {
+  correct: boolean;
+  answer: number;
+  answer_text: string;
+  done: boolean;
+}
+export const answerChunk = (attemptId: number, choice: number) =>
+  post<AnswerResult>("/api/learn/answer", { attempt_id: attemptId, choice });
+
+export function mixLabel(key: string): string {
+  const parts = key.split("+");
+  const names: string[] = [parts[0] === "simple" ? "Simple text" : "Original text"];
+  if (parts.includes("audio")) names.push("read aloud");
+  if (parts.includes("picture")) names.push("picture");
+  return names.join(" + ");
+}

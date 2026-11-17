@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -16,6 +15,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { Image01Icon, MagicWand01Icon, Quiz02Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
+import { VerificationNote } from "@/components/VerificationNote";
 import { ReadableText } from "@/components/ReadableText";
 import { useAnnounce } from "@/components/Announcer";
 import { illustrate, listLessons, logUsage, makeQuiz, simplify, type QuizQuestion, type SimplifyResult } from "@/lib/api";
@@ -51,7 +51,7 @@ export function SimplifyPanel() {
       const r = await simplify(text, settings.lang);
       setResult(r);
       announce("Simplified text ready.");
-      logUsage("simplify", "simplify", { lang: settings.lang, source: r.source });
+      logUsage("simplify", "simplify", { lang: settings.lang, verification: r.verification });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -88,8 +88,6 @@ export function SimplifyPanel() {
     }
   };
 
-  const fc = result?.fact_check;
-
   return (
     <Stack spacing={4}>
       <Paper sx={{ p: { xs: 2, md: 4 } }}>
@@ -124,7 +122,6 @@ export function SimplifyPanel() {
               <Typography variant="h4" component="h2" sx={{ mr: 1 }}>
                 Simple version
               </Typography>
-              <Chip size="small" label={result.source === "ai" ? "AI" : "Offline rules"} />
               {result.grade_before !== null && result.grade_after !== null && (
                 <Chip
                   size="small"
@@ -135,24 +132,8 @@ export function SimplifyPanel() {
               )}
             </Stack>
 
-            {/* Simplification can drop or change facts (Devaraj et al., 2022), so show the check. */}
-            {fc && !fc.faithful && (
-              <Alert severity="warning">
-                <AlertTitle>Check with your teacher</AlertTitle>
-                The simple version may differ from the original:
-                <ul style={{ margin: "8px 0 0" }}>
-                  {fc.issues.map((i) => (
-                    <li key={i}>{i}</li>
-                  ))}
-                </ul>
-              </Alert>
-            )}
-            {fc?.faithful && <Alert severity="success">Facts checked: nothing was added or left out.</Alert>}
-            {result.source === "rules" && (
-              <Alert severity="info">
-                Made with offline rules, which only shorten English sentences. A teacher should read it first.
-              </Alert>
-            )}
+            {/* The fidelity gate (N2): only fact-checked text reaches the learner. */}
+            <VerificationNote verification={result.verification} kind="simplify" />
 
             {/* Easy-read text helps most when an adult explains it alongside (Buell et al., 2019). */}
             <FormControlLabel

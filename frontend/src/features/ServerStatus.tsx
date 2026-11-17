@@ -20,7 +20,7 @@ export function ServerStatus() {
     return (
       <Alert severity="warning">
         AI is not configured on this server. Read-aloud, captions and offline simplification still work; image
-        descriptions, translation and pictures need an OpenAI key.
+        descriptions, translation, pictures and adaptive lessons need a Gemini API key.
       </Alert>
     );
   return null;

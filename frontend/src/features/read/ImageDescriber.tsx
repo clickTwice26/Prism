@@ -12,7 +12,8 @@ import Typography from "@mui/material/Typography";
 import { Upload04Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
 import { useAnnounce } from "@/components/Announcer";
-import { describeImage, logUsage } from "@/lib/api";
+import { describeImage, logUsage, type DescribeResult } from "@/lib/api";
+import { VerificationNote } from "@/components/VerificationNote";
 import { useReadAloud } from "@/lib/useReadAloud";
 import { useSettings } from "@/lib/settings";
 
@@ -25,18 +26,19 @@ export function ImageDescriber() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [image, setImage] = useState<string | null>(null);
   const [detail, setDetail] = useState<"short" | "detailed">("short");
-  const [description, setDescription] = useState<string | null>(null);
+  const [result, setResult] = useState<DescribeResult | null>(null);
+  const description = result?.description ?? null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const run = async (dataUrl: string, level: "short" | "detailed") => {
     setBusy(true);
     setError(null);
-    setDescription(null);
+    setResult(null);
     announce("Looking at the image…");
     try {
       const res = await describeImage(dataUrl, settings.lang, level);
-      setDescription(res.description);
+      setResult(res);
       announce("Description ready.");
       logUsage("image", "describe", { lang: settings.lang, detail: level });
       void reader.speak(res.description, settings.lang);
@@ -122,10 +124,8 @@ export function ImageDescriber() {
             <Typography variant="reading" sx={{ wordSpacing: `${settings.wordSpacing}em` }}>
               {description}
             </Typography>
-            {/* AI descriptions can sound right while being wrong (Aljedaani et al., 2026). */}
-            <Alert severity="info" variant="outlined">
-              Written by AI. It can make mistakes, so ask your teacher if something seems wrong.
-            </Alert>
+            {/* The fidelity gate (N2): disputed details go to the teacher, not the learner. */}
+            {result && <VerificationNote verification={result.verification} kind="describe" disputed={result.disputed} />}
             <Box>
               <Button
                 variant="outlined"

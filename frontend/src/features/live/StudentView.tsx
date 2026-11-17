@@ -194,7 +194,11 @@ export function StudentView() {
     announce("Looking at the screen…");
     try {
       const res = await describeImage(canvas.toDataURL("image/jpeg", 0.85), settings.lang, "short");
-      setScreenNote(res.description);
+      setScreenNote(
+        res.verification === "pending_review"
+          ? `${res.description} (Your teacher is checking some details, so only the parts Prism is sure about are shown.)`
+          : res.description,
+      );
       void reader.speak(res.description, settings.lang);
       logUsage("live", "describe_screen", { lang: settings.lang });
     } catch (e) {
@@ -265,7 +269,7 @@ export function StudentView() {
               <Alert severity="info" variant="outlined">
                 {screenNote}
                 <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
-                  Written by AI and may contain mistakes.
+                  Written by AI and checked against independent descriptions.
                 </Typography>
               </Alert>
             )}
