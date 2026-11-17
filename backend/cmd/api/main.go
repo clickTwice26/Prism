@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -54,9 +55,20 @@ func run(log *slog.Logger) error {
 	hub := live.NewHub(rc.R, log)
 	go hub.Run(ctx)
 
-	aic := ai.New(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel, cfg.OpenAIImageModel, cfg.OpenAITTSModel, cfg.OpenAITTSVoice)
-	if !aic.Enabled() {
-		log.Warn("OPENAI_API_KEY not set: AI features return 503, simplify uses the offline rules")
+	var backend ai.Backend
+	switch cfg.AIProvider {
+	case "openai":
+		backend = ai.NewOpenAI(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel, cfg.OpenAIImageModel, cfg.OpenAITTSModel, cfg.OpenAITTSVoice)
+	case "gemini":
+		backend = ai.NewGemini(cfg.GeminiKey, cfg.GeminiBaseURL, cfg.GeminiModel, cfg.GeminiImageModel, cfg.GeminiTTSModel, cfg.GeminiTTSVoice, cfg.GeminiThinkingLevel)
+	default:
+		return fmt.Errorf("AI_PROVIDER must be gemini or openai, got %q", cfg.AIProvider)
+	}
+	aic := ai.New(backend)
+	if aic.Enabled() {
+		log.Info("AI provider ready", "provider", aic.Provider())
+	} else {
+		log.Warn("no API key for the AI provider: AI features return 503, simplify uses the offline rules", "provider", aic.Provider())
 	}
 	piper := tts.NewPiper(cfg.PiperBin, cfg.PiperVoicesDir)
 
