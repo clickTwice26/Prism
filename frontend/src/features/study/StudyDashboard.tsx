@@ -21,6 +21,7 @@ import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useAnnounce } from "@/components/Announcer";
+import { LearnerPicker } from "@/features/learn/LearnerPicker";
 import {
   addParticipant,
   addResult,
@@ -119,6 +120,13 @@ export function StudyDashboard() {
   return (
     <Stack spacing={4}>
       {error && <Alert severity="error">{error}</Alert>}
+
+      <Paper sx={{ p: { xs: 2, md: 4 } }}>
+        <Typography variant="h4" component="h2" gutterBottom>
+          What works for each learner
+        </Typography>
+        <LearnerPicker />
+      </Paper>
 
       <Paper sx={{ p: { xs: 2, md: 4 } }}>
         <Typography variant="h4" component="h2" gutterBottom>
