@@ -18,6 +18,7 @@ import (
 	"github.com/clickTwice26/Prism/backend/internal/ai"
 	"github.com/clickTwice26/Prism/backend/internal/cache"
 	"github.com/clickTwice26/Prism/backend/internal/config"
+	"github.com/clickTwice26/Prism/backend/internal/gate"
 	"github.com/clickTwice26/Prism/backend/internal/live"
 	"github.com/clickTwice26/Prism/backend/internal/store"
 	"github.com/clickTwice26/Prism/backend/internal/tts"
@@ -28,13 +29,14 @@ type Server struct {
 	db    *store.Store
 	cache *cache.Cache
 	ai    *ai.Client
+	gate  *gate.Gate
 	piper *tts.Piper
 	hub   *live.Hub
 	log   *slog.Logger
 }
 
 func New(cfg config.Config, db *store.Store, c *cache.Cache, aic *ai.Client, piper *tts.Piper, hub *live.Hub, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, db: db, cache: c, ai: aic, piper: piper, hub: hub, log: log}
+	return &Server{cfg: cfg, db: db, cache: c, ai: aic, gate: gate.New(aic, db, aic.Enabled), piper: piper, hub: hub, log: log}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -62,6 +64,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/study/results", s.createResult)
 	mux.HandleFunc("GET /api/study/results", s.listResults)
 	mux.HandleFunc("GET /api/study/summary", s.studySummary)
+
+	// N2: fidelity gate review queue.
+	mux.HandleFunc("GET /api/review", s.listReviews)
+	mux.HandleFunc("GET /api/review/count", s.reviewCount)
+	mux.HandleFunc("POST /api/review/{id}/approve", s.decideReview(true))
+	mux.HandleFunc("POST /api/review/{id}/reject", s.decideReview(false))
+
+	// N1: comprehension-driven adaptive lessons.
+	mux.HandleFunc("POST /api/learners", s.createLearner)
+	mux.HandleFunc("GET /api/learners", s.listLearners)
+	mux.HandleFunc("GET /api/learners/{id}/insights", s.learnerInsights)
+	mux.Handle("POST /api/learn/next", s.limited(s.nextChunk))
+	mux.HandleFunc("POST /api/learn/answer", s.answerChunk)
 
 	mux.HandleFunc("GET /ws/class/{room}", s.liveClass)
 

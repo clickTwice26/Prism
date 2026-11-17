@@ -11,6 +11,7 @@ import (
 
 	"github.com/clickTwice26/Prism/backend/internal/ai"
 	"github.com/clickTwice26/Prism/backend/internal/cache"
+	"github.com/clickTwice26/Prism/backend/internal/gate"
 	"github.com/clickTwice26/Prism/backend/internal/store"
 	"github.com/clickTwice26/Prism/backend/internal/textkit"
 )
@@ -50,7 +51,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, status, map[string]any{
 		"status":   map[bool]string{true: "ok", false: "degraded"}[pg && rd],
-		"postgres": pg, "redis": rd, "ai": s.ai.Enabled(),
+		"postgres": pg, "redis": rd, "ai": s.ai.Enabled(), "ai_provider": s.ai.Provider(),
 		"piper_languages": s.piper.Languages(),
 	})
 }
@@ -115,15 +116,13 @@ func (s *Server) createLesson(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, l)
 }
 
-// ---- simplify ----
+// ---- simplify (through the fidelity gate, N2) ----
 
 type simplifyResult struct {
-	Original    string        `json:"original"`
-	Simplified  string        `json:"simplified"`
-	Source      string        `json:"source"` // ai | rules
-	GradeBefore *int          `json:"grade_before"`
-	GradeAfter  *int          `json:"grade_after"`
-	FactCheck   *ai.FactCheck `json:"fact_check"`
+	Original string `json:"original"`
+	gate.SimplifyResult
+	GradeBefore *int `json:"grade_before"`
+	GradeAfter  *int `json:"grade_after"`
 }
 
 func (s *Server) simplify(w http.ResponseWriter, r *http.Request) {
@@ -141,32 +140,22 @@ func (s *Server) simplify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "unsupported language")
 		return
 	}
-	ctx := r.Context()
-	res, err := cache.Remember(ctx, s.cache, cache.Key("simplify", in.Lang, in.Text), cacheTTL, func() (simplifyResult, error) {
-		out := simplifyResult{Original: in.Text, Source: "ai"}
-		simplified, err := s.ai.Simplify(ctx, in.Text, in.Lang)
-		if err != nil {
-			s.log.Warn("ai simplify unavailable, using rules", "err", err)
-			out.Source, out.Simplified = "rules", textkit.Simplify(in.Text, in.Lang)
-		} else {
-			out.Simplified = simplified
-			if fc, err := s.ai.CheckFacts(ctx, in.Text, simplified); err == nil {
-				out.FactCheck = &fc
-			} else {
-				s.log.Warn("fact check failed", "err", err)
-			}
-		}
-		out.GradeBefore = textkit.GradeLevel(in.Text, in.Lang)
-		out.GradeAfter = textkit.GradeLevel(out.Simplified, in.Lang)
-		return out, nil
-	})
+	res, err := s.gate.Simplify(r.Context(), in.Text, in.Lang)
 	if err != nil {
 		s.aiError(w, err, "simplify")
 		return
 	}
-	_ = s.db.LogSimplify(ctx, store.SimplifyLog{Language: in.Lang, Source: res.Source, Original: res.Original,
-		Simplified: res.Simplified, GradeBefore: res.GradeBefore, GradeAfter: res.GradeAfter})
-	writeJSON(w, http.StatusOK, res)
+	out := simplifyResult{
+		Original: in.Text, SimplifyResult: res,
+		GradeBefore: textkit.GradeLevel(in.Text, in.Lang), GradeAfter: textkit.GradeLevel(res.Text, in.Lang),
+	}
+	source := "ai"
+	if res.Verification == gate.RulesOnly {
+		source = "rules"
+	}
+	_ = s.db.LogSimplify(r.Context(), store.SimplifyLog{Language: in.Lang, Source: source, Original: in.Text,
+		Simplified: res.Text, GradeBefore: out.GradeBefore, GradeAfter: out.GradeAfter})
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Server) quiz(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +205,7 @@ func (s *Server) translate(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"original": in.Text, "translated": out, "target_lang": in.TargetLang})
 }
 
-// ---- describe image ----
+// ---- describe image (through the fidelity gate, N2) ----
 
 func (s *Server) describeImage(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -241,13 +230,12 @@ func (s *Server) describeImage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnprocessableEntity, "unsupported language")
 		return
 	}
-	out, err := cache.Remember(r.Context(), s.cache, cache.Key("describe", in.Lang, in.Detail, in.ImageDataURL), cacheTTL,
-		func() (string, error) { return s.ai.DescribeImage(r.Context(), in.ImageDataURL, in.Lang, in.Detail) })
+	res, err := s.gate.Describe(r.Context(), in.ImageDataURL, in.Lang, in.Detail)
 	if err != nil {
 		s.aiError(w, err, "describe the image")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"description": out, "ai_generated": true})
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (s *Server) illustrate(w http.ResponseWriter, r *http.Request) {
@@ -269,16 +257,16 @@ func (s *Server) illustrate(w http.ResponseWriter, r *http.Request) {
 // ---- text to speech ----
 
 func (s *Server) ttsLanguages(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"piper": s.piper.Languages(), "openai": s.ai.Enabled()})
+	writeJSON(w, http.StatusOK, map[string]any{"piper": s.piper.Languages(), "ai": s.ai.Enabled(), "ai_provider": s.ai.Provider()})
 }
 
-// speak picks Piper (offline) when it has a voice, else OpenAI. The browser's
+// speak picks Piper (offline) when it has a voice, else the AI provider. The browser's
 // own speech synthesis is the client-side fallback when this returns an error.
 func (s *Server) speak(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Text   string `json:"text"`
 		Lang   string `json:"lang"`
-		Engine string `json:"engine"` // auto | piper | openai
+		Engine string `json:"engine"` // auto | piper | ai
 	}
 	if !decode(w, r, &in) || !textOK(w, in.Text, 5000) {
 		return
@@ -286,7 +274,7 @@ func (s *Server) speak(w http.ResponseWriter, r *http.Request) {
 	if in.Lang == "" {
 		in.Lang = "en"
 	}
-	usePiper := in.Engine != "openai" && s.piper.Supports(in.Lang)
+	usePiper := in.Engine != "ai" && in.Engine != "openai" && s.piper.Supports(in.Lang)
 	if in.Engine == "piper" && !usePiper {
 		writeError(w, http.StatusUnprocessableEntity, "no offline voice for this language")
 		return
@@ -294,13 +282,13 @@ func (s *Server) speak(w http.ResponseWriter, r *http.Request) {
 	var (
 		audio []byte
 		err   error
-		mime  = "audio/mpeg"
+		mime  string
 	)
 	if usePiper {
 		mime = "audio/wav"
 		audio, err = s.piper.Synthesize(r.Context(), in.Text, in.Lang)
 	} else {
-		audio, err = s.ai.Speech(r.Context(), in.Text)
+		audio, mime, err = s.ai.Speech(r.Context(), in.Text, in.Lang)
 	}
 	if err != nil {
 		s.aiError(w, err, "read aloud")
