@@ -121,7 +121,7 @@ export function StudyDashboard() {
       {error && <Alert severity="error">{error}</Alert>}
 
       <Paper sx={{ p: { xs: 2, md: 4 } }}>
-        <Typography variant="h5" component="h2" gutterBottom>
+        <Typography variant="h4" component="h2" gutterBottom>
           With Prism vs without ({summary?.participants ?? 0} participants)
         </Typography>
         <TableContainer>
@@ -152,7 +152,7 @@ export function StudyDashboard() {
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper sx={{ p: 3 }}>
             <Stack spacing={2}>
-              <Typography variant="h6" component="h2">
+              <Typography variant="h4" component="h2">
                 Add a participant
               </Typography>
               <TextField label="Code (no names)" placeholder="P01" value={p.code} onChange={(e) => setP({ ...p, code: e.target.value })} />
@@ -176,7 +176,7 @@ export function StudyDashboard() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ p: 3 }}>
             <Stack spacing={2}>
-              <Typography variant="h6" component="h2">
+              <Typography variant="h4" component="h2">
                 Record a result
               </Typography>
               <Grid container spacing={2}>

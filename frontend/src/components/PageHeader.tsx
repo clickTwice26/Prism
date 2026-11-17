@@ -5,10 +5,10 @@ import Chip from "@mui/material/Chip";
 export function PageHeader({ title, lead, audience }: { title: string; lead: string; audience?: string[] }) {
   return (
     <Stack spacing={1.5} sx={{ mb: 4 }}>
-      <Typography variant="h3" component="h1">
+      <Typography variant="h1">
         {title}
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ maxWidth: "65ch", fontSize: "1.1rem" }}>
+      <Typography variant="lead" color="text.secondary" sx={{ maxWidth: "65ch" }}>
         {lead}
       </Typography>
       {audience && (

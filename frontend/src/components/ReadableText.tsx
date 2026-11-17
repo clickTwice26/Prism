@@ -16,8 +16,7 @@ export function ReadableText({ text, word, lang }: { text: string; word?: WordRa
     <Box
       lang={lang}
       sx={{
-        fontSize: "1.2rem",
-        lineHeight: 1.8,
+        typography: "reading",
         wordSpacing: `${settings.wordSpacing}em`,
         whiteSpace: "pre-wrap",
         maxWidth: "70ch",

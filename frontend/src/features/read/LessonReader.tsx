@@ -74,7 +74,7 @@ export function LessonReader() {
   return (
     <Paper sx={{ p: { xs: 2, md: 4 } }}>
       <Stack spacing={3}>
-        <Typography variant="h5" component="h2">
+        <Typography variant="h4" component="h2">
           Read the lesson aloud
         </Typography>
         <FormControl sx={{ maxWidth: 360 }}>

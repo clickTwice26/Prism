@@ -21,7 +21,7 @@ export function AccessibilityPanel() {
   const { settings, update, reset } = useSettings();
   return (
     <Stack spacing={3} sx={{ p: 3, width: { xs: "100vw", sm: 380 } }}>
-      <Typography variant="h5" component="h2">
+      <Typography variant="h4" component="h2">
         Reading settings
       </Typography>
 

@@ -194,10 +194,10 @@ export function TeacherView() {
         <Paper sx={{ p: 3 }}>
           <Stack spacing={2.5}>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
-              <Typography variant="h6" component="h2">
+              <Typography variant="h4" component="h2">
                 Class code
               </Typography>
-              <Chip label={room || "…"} color="primary" sx={{ fontSize: "1.1rem", fontWeight: 700, letterSpacing: "0.08em" }} />
+              <Chip label={room || "…"} color="primary" sx={{ typography: "h5", letterSpacing: "0.08em" }} />
               {!live && (
                 <Button size="small" onClick={() => setRoom(newClassCode())} startIcon={<Icon icon={Refresh01Icon} size={18} />}>
                   New code
@@ -260,7 +260,7 @@ export function TeacherView() {
           <Paper sx={{ p: 3 }}>
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1.5 }}>
               <Icon icon={UserGroupIcon} />
-              <Typography variant="h6" component="h2">
+              <Typography variant="h4" component="h2">
                 Students ({students.length})
               </Typography>
             </Stack>

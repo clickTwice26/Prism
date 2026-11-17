@@ -121,7 +121,7 @@ export function SimplifyPanel() {
         <Paper sx={{ p: { xs: 2, md: 4 } }}>
           <Stack spacing={3}>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
-              <Typography variant="h5" component="h2" sx={{ mr: 1 }}>
+              <Typography variant="h4" component="h2" sx={{ mr: 1 }}>
                 Simple version
               </Typography>
               <Chip size="small" label={result.source === "ai" ? "AI" : "Offline rules"} />
@@ -168,7 +168,7 @@ export function SimplifyPanel() {
                   <Typography variant="overline" color="text.secondary">
                     Original
                   </Typography>
-                  <Typography sx={{ lineHeight: 1.8 }}>{result.original}</Typography>
+                  <Typography variant="reading">{result.original}</Typography>
                 </Grid>
               )}
             </Grid>

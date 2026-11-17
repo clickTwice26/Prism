@@ -208,7 +208,7 @@ export function StudentView() {
     return (
       <Paper sx={{ p: { xs: 2, md: 4 }, maxWidth: 520 }}>
         <Stack spacing={2.5} component="form" onSubmit={(e) => (e.preventDefault(), join())}>
-          <Typography variant="h5" component="h2">
+          <Typography variant="h4" component="h2">
             Join your class
           </Typography>
           <TextField

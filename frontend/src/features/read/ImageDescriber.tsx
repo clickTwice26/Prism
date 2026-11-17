@@ -63,7 +63,7 @@ export function ImageDescriber() {
   return (
     <Paper sx={{ p: { xs: 2, md: 4 } }}>
       <Stack spacing={3}>
-        <Typography variant="h5" component="h2">
+        <Typography variant="h4" component="h2">
           Describe a picture or diagram
         </Typography>
 
@@ -119,7 +119,7 @@ export function ImageDescriber() {
 
         {description && (
           <Stack spacing={1.5}>
-            <Typography sx={{ fontSize: "1.15rem", lineHeight: 1.7, wordSpacing: `${settings.wordSpacing}em` }}>
+            <Typography variant="reading" sx={{ wordSpacing: `${settings.wordSpacing}em` }}>
               {description}
             </Typography>
             {/* AI descriptions can sound right while being wrong (Aljedaani et al., 2026). */}

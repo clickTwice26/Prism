@@ -45,8 +45,7 @@ export function Captions({ interim, lines, room }: { interim: string; lines: Lin
           minHeight: 110,
           bgcolor: "common.black",
           color: "common.white",
-          fontSize: "1.6rem",
-          lineHeight: 1.5,
+          typography: "liveCaption",
           wordSpacing: `${settings.wordSpacing}em`,
         }}
         aria-hidden // the transcript below is the accessible version
@@ -54,7 +53,7 @@ export function Captions({ interim, lines, room }: { interim: string; lines: Lin
         {interim || last?.translated || last?.text || "Captions will appear here when the teacher speaks."}
       </Paper>
       <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-        <Typography variant="h6" component="h3">
+        <Typography variant="h5" component="h3">
           Transcript
         </Typography>
         <Button onClick={download} disabled={!lines.length} startIcon={<Icon icon={Download04Icon} size={18} />}>

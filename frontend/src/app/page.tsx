@@ -49,10 +49,10 @@ export default function Home() {
   return (
     <Stack spacing={6}>
       <Box sx={{ maxWidth: 760 }}>
-        <Typography variant="h2" component="h1" sx={{ fontSize: { xs: "2.2rem", md: "3.2rem" } }}>
+        <Typography variant="display">
           The same lesson, for every learner.
         </Typography>
-        <Typography color="text.secondary" sx={{ mt: 2, fontSize: "1.2rem" }}>
+        <Typography variant="lead" color="text.secondary" sx={{ mt: 2, maxWidth: "60ch" }}>
           Prism takes the class every student sees and gives each child the form they can use: spoken, captioned,
           described or simplified.
         </Typography>
@@ -76,7 +76,7 @@ export default function Home() {
                     <Box sx={{ color: "primary.main" }}>
                       <Icon icon={t.icon} size={32} />
                     </Box>
-                    <Typography variant="h5" component="h2">
+                    <Typography variant="h4" component="h2">
                       {t.title}
                     </Typography>
                     <Typography color="text.secondary">{t.text}</Typography>

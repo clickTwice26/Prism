@@ -33,7 +33,7 @@ export function Quiz({ questions }: { questions: QuizQuestion[] }) {
   return (
     <Paper sx={{ p: { xs: 2, md: 4 } }}>
       <Stack spacing={3}>
-        <Typography variant="h5" component="h2">
+        <Typography variant="h4" component="h2">
           Check my understanding
         </Typography>
         {questions.map((q, qi) => {
@@ -41,7 +41,7 @@ export function Quiz({ questions }: { questions: QuizQuestion[] }) {
           const answered = picked !== undefined;
           return (
             <FormControl key={q.question}>
-              <FormLabel id={`q${qi}`} sx={{ fontSize: "1.15rem", color: "text.primary", mb: 1 }}>
+              <FormLabel id={`q${qi}`} sx={{ typography: "h5", color: "text.primary", mb: 1 }}>
                 {qi + 1}. {q.question}
               </FormLabel>
               <RadioGroup aria-labelledby={`q${qi}`} value={picked ?? ""} onChange={(_, v) => choose(qi, Number(v))}>
