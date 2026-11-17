@@ -12,9 +12,11 @@ Built for the International AI Builders Congress 2026, LearnSphere AI → AI Tea
 
 | Area | For | Features |
 | --- | --- | --- |
+| Adaptive lesson | Every learner | One short part at a time with a question; Prism keeps the supports (simple text, read-aloud, picture) that help *this* learner, measured by their answers |
 | Read & images | Blind, low vision, dyslexia | Read-aloud in Bangla, English and Malay with word highlighting; AI image descriptions at short or detailed length |
 | Simplify | Intellectual disability, autism, slow readers | Plain-language rewrite, automatic fact check against the original, side-by-side view for an adult, picture, comprehension quiz |
 | Live class | Deaf, hard of hearing, blind | Teacher camera or screen with live captions, translatable transcript, "What's on screen now?" description |
+| Review | Teachers | AI outputs that failed the automatic fact and agreement checks wait here; learners see only the safe version until a teacher approves |
 | Study | Teachers, researchers | Same task with and without Prism; compares comprehension, completion, time, SUS and satisfaction |
 
 The research behind these choices is in [docs/architecture.md](docs/architecture.md#research-behind-the-features).
@@ -24,7 +26,9 @@ The research behind these choices is in [docs/architecture.md](docs/architecture
 - **Frontend:** Next.js 16.4 (App Router, Turbopack), React 19.3, MUI 9.5, Hugeicons, Onest font,
   TypeScript 7
 - **Backend:** Go 1.27, PostgreSQL 18, Redis 8
-- **AI:** OpenAI for simplification, fact checks, quizzes, translation, vision and speech. Piper is
+- **AI:** Google Gemini by default (`gemini-4-hydrogen` for text and vision, Nano Banana 2 Lite for
+  pictures, Gemini 3.8 Flash-Lite TTS for Bangla, English and Malay speech). Set `AI_PROVIDER=openai`
+  to use OpenAI instead. Piper is
   optional for offline read-aloud.
 
 ## Quick start
@@ -36,7 +40,7 @@ docker compose up -d postgres redis
 ```
 
 ```bash
-cp backend/.env.example backend/.env   # add OPENAI_API_KEY to enable AI features
+cp backend/.env.example backend/.env   # add GEMINI_API_KEY to enable AI features
 ```
 
 ```bash
@@ -49,7 +53,7 @@ cd frontend && npm install && npm run dev
 
 Open http://localhost:3100. The API runs on http://localhost:8080; check it at `/api/health`.
 
-Without an OpenAI key the app still runs. Read-aloud uses the browser voice, captions and the study
+Without an AI key the app still runs. Read-aloud uses the browser voice, captions and the study
 work, and Simplify falls back to offline English rules.
 
 To run everything in containers instead:

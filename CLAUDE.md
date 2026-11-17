@@ -10,7 +10,7 @@ reference only. Do not copy code from them; write fresh code here.
 ## Layout
 
 - `backend/`: Go API. `cmd/api` is the entrypoint; `internal/` holds `config`, `store` (Postgres +
-  embedded SQL migrations), `cache` (Redis cache and rate limit), `ai` (OpenAI REST), `textkit`
+  embedded SQL migrations), `cache` (Redis cache and rate limit), `ai` (prompts plus Gemini and OpenAI backends), `textkit`
   (offline simplifier, reading level), `tts` (Piper), `live` (class relay over Redis pub/sub) and
   `httpapi` (routes, handlers, middleware).
 - `frontend/`: Next.js 16 App Router. `src/app` holds routes, `src/features/<area>` the screens,
