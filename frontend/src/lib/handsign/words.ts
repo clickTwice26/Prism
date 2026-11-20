@@ -44,6 +44,8 @@ export interface SignFrame {
   dominant: HandPoints | null;
   other: HandPoints | null;
   body: Body | null;
+  /** The 33 pose points the body came from, when known (recordings, synthetic signers). */
+  bodyPoints?: Vec[];
 }
 
 export type WordPart = "handshape" | "location" | "movement" | "direction" | "otherHand";
@@ -119,6 +121,25 @@ function frameCost(m: Measured, k: Keyframe): Cost {
   return { total: WEIGHTS.pos * L(pos) + WEIGHTS.shape * L(shape) + WEIGHTS.dir * L(dir) + WEIGHTS.other * L(other), pos, shape, dir, other };
 }
 
+/**
+ * Averages each hand's points with its neighbours in time (radius frames on
+ * each side, only across frames where that hand is seen), to take out camera
+ * jitter before handshapes are judged.
+ */
+export function smoothFrames(frames: SignFrame[], radius = 2): SignFrame[] {
+  const avgHand = (i: number, key: "dominant" | "other"): HandPoints | null => {
+    const h = frames[i][key];
+    if (!h) return null;
+    const near: HandPoints[] = [];
+    for (let j = Math.max(0, i - radius); j <= Math.min(frames.length - 1, i + radius); j++) {
+      const x = frames[j][key];
+      if (x) near.push(x);
+    }
+    return h.map((_, k) => mean(near.map((x) => x[k])));
+  };
+  return frames.map((f, i) => ({ ...f, dominant: avgHand(i, "dominant"), other: avgHand(i, "other") }));
+}
+
 /** Evenly picks at most n items. */
 function resample<T>(xs: T[], n: number): T[] {
   if (xs.length <= n) return xs;
@@ -167,7 +188,7 @@ function align(ms: Measured[], keys: Keyframe[]): Omit<WordScore, "word" | "id">
  * word, its best variant). Frames without the signing hand or the body are skipped.
  */
 export function scoreWords(frames: SignFrame[], words: WordTemplate[], maxFrames = 40): WordScore[] {
-  const ms = resample(frames.map(measure).filter((m): m is Measured => m !== null), maxFrames);
+  const ms = resample(smoothFrames(frames).map(measure).filter((m): m is Measured => m !== null), maxFrames);
   if (ms.length < 3) return [];
   const body = ms[Math.floor(ms.length / 2)].body;
   const best = new Map<string, WordScore>();

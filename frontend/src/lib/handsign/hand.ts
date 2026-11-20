@@ -140,14 +140,17 @@ function straightness(h: HandPoints, chain: readonly number[]): number {
 }
 
 /**
- * Finger straightness from the bend at its middle and end knuckles: straight
- * is 1, a C-shaped curve about 0.5, a fist 0 (about 160° of bend). Bending at
- * the base knuckle is measured separately (baseBend), as HamNoSys does.
+ * Finger straightness from how much it curls after the base knuckle: the
+ * angle between the first segment (base → middle knuckle) and the line from
+ * the middle knuckle to the tip. Straight is 1, a C-shaped curve about 0.5, a
+ * fist 0 (about 150°). Measuring over the longer middle-knuckle-to-tip line
+ * keeps camera jitter from looking like a bent finger. Bending at the base
+ * knuckle is measured separately (baseBend), as HamNoSys does.
  */
 function fingerStraightness(h: HandPoints, f: FingerName): number {
-  const [mcp, pip, dip, tip] = FINGERS[f];
-  const bend = angle(sub(h[pip], h[mcp]), sub(h[dip], h[pip])) + angle(sub(h[dip], h[pip]), sub(h[tip], h[dip]));
-  return clamp01(1 - bend / ((160 * Math.PI) / 180));
+  const [mcp, pip, , tip] = FINGERS[f];
+  const bend = angle(sub(h[pip], h[mcp]), sub(h[tip], h[pip]));
+  return clamp01(1 - bend / ((150 * Math.PI) / 180));
 }
 
 export function shapeFeatures(h: HandPoints): ShapeFeatures {
@@ -177,20 +180,26 @@ export const BASE_SHAPES = [
 export type BaseShape = (typeof BASE_SHAPES)[number];
 
 // Expected straightness of index, middle, ring, pinky (1 = straight, 0 = curled, 0.6 = curved as in a C).
-// Spread is measured only between the fingers a shape extends.
-const EXPECT: Record<BaseShape, { fingers: [number, number, number, number]; spread?: "together" | "apart"; pinch?: "index" | "all"; cee?: boolean }> = {
-  fist: { fingers: [0, 0, 0, 0] },
+// Expected straightness (see fingerStraightness) of index, middle, ring, pinky: a curled finger
+// reads about 0.15, a C-curve 0.6, a wide C 0.75, a straight finger 1. Spread is measured only
+// between the fingers a shape extends.
+const CURLED = 0.15;
+const CURVED = 0.6;
+const WIDE = 0.75;
+const EXPECT: Record<BaseShape, { fingers: [number, number, number, number]; spread?: "together" | "apart"; pinch?: "index" | "all"; cee?: number }> = {
+  fist: { fingers: [CURLED, CURLED, CURLED, CURLED] },
   flathand: { fingers: [1, 1, 1, 1], spread: "together" },
   finger2345: { fingers: [1, 1, 1, 1], spread: "apart" },
-  finger2: { fingers: [1, 0, 0, 0] },
-  finger23: { fingers: [1, 1, 0, 0], spread: "together" },
-  finger23spread: { fingers: [1, 1, 0, 0], spread: "apart" },
-  pinch12: { fingers: [0.55, 0, 0, 0], pinch: "index" },
-  pinch12open: { fingers: [0.55, 1, 1, 1], pinch: "index" },
-  pinchall: { fingers: [0.55, 0.55, 0.55, 0.55], pinch: "all" },
-  cee12: { fingers: [0.5, 0, 0, 0], cee: true },
-  ceeall: { fingers: [0.5, 0.5, 0.5, 0.5], cee: true },
-  ceeopen: { fingers: [0.69, 0.69, 0.69, 0.69], cee: true },
+  finger2: { fingers: [1, CURLED, CURLED, CURLED] },
+  finger23: { fingers: [1, 1, CURLED, CURLED], spread: "together" },
+  finger23spread: { fingers: [1, 1, CURLED, CURLED], spread: "apart" },
+  pinch12: { fingers: [CURVED, CURLED, CURLED, CURLED], pinch: "index" },
+  pinch12open: { fingers: [CURVED, 1, 1, 1], pinch: "index" },
+  pinchall: { fingers: [CURVED, CURVED, CURVED, CURVED], pinch: "all" },
+  // cee: the gap between the thumb and index tips, in hand sizes.
+  cee12: { fingers: [CURVED, CURLED, CURLED, CURLED], cee: 0.75 },
+  ceeall: { fingers: [CURVED, CURVED, CURVED, CURVED], cee: 0.75 },
+  ceeopen: { fingers: [WIDE, WIDE, WIDE, WIDE], cee: 1.0 },
 };
 
 const near = (x: number, target: number, tol: number) => Math.exp(-(((x - target) / tol) ** 2));
@@ -208,13 +217,13 @@ export function shapeScore(f: ShapeFeatures, shape: string, thumb?: string, bend
   const fingers = e.fingers.reduce((acc, want, i) => acc * near(f.straight[i + 1], want, 0.2), 1) ** (1 / 4);
   let score = fingers;
   if (e.spread) {
-    const twoFingers = e.fingers[2] === 0;
+    const twoFingers = e.fingers[2] < 0.5;
     const apart = twoFingers ? f.spread[0] : (f.spread[0] + f.spread[1] + f.spread[2]) / 3; // radians
     score *= e.spread === "apart" ? clamp01((apart - 0.08) / 0.15) * 0.8 + 0.2 : near(apart, 0.05, 0.15) * 0.8 + 0.2;
   }
   if (e.pinch === "index") score *= near(f.thumbTo[0], 0, 0.35);
   if (e.pinch === "all") score *= near((f.thumbTo[0] + f.thumbTo[1] + f.thumbTo[2] + f.thumbTo[3]) / 4, 0, 0.45);
-  if (e.cee) score *= near(f.thumbTo[0], 0.75, 0.35); // a gap between thumb and fingers
+  if (e.cee) score *= near(f.thumbTo[0], e.cee, 0.3); // a gap between thumb and fingers
   if (thumb && THUMB_SIDE[thumb] !== undefined && !e.pinch && !e.cee) {
     score *= 0.4 + 0.6 * near(f.thumbSide, THUMB_SIDE[thumb], 0.3);
   }
@@ -327,4 +336,31 @@ export function featureVector(dom: HandPoints | null, other: HandPoints | null, 
     out.push(...new Array(99).fill(0));
   }
   return out;
+}
+
+// ---- smoothing camera jitter ----
+
+/**
+ * Smooths one hand's points over time (an exponential moving average), so
+ * tracking jitter does not look like a bending finger. Starts again whenever
+ * the hand is lost, so a new hand never inherits an old position.
+ */
+export class PointSmoother {
+  private last: HandPoints | null = null;
+  private readonly alpha: number;
+
+  /** alpha: weight of the newest frame (1 = no smoothing). */
+  constructor(alpha = 0.5) {
+    this.alpha = alpha;
+  }
+
+  push(h: HandPoints | null): HandPoints | null {
+    if (!h) {
+      this.last = null;
+      return null;
+    }
+    const a = this.alpha;
+    this.last = this.last ? h.map((p, i) => add(scale(p, a), scale(this.last![i], 1 - a))) : h;
+    return this.last;
+  }
 }

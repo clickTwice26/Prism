@@ -52,6 +52,7 @@ export function signWord(word: WordTemplate, seed = 1, opts: { noise?: number } 
         dominant: noisy(dom, noise * body.width, n),
         other: other ? noisy(other, noise * body.width, n + 7) : null,
         body,
+        bodyPoints: bodyPts,
       });
     }
     prev = k;
@@ -65,6 +66,7 @@ export function signWord(word: WordTemplate, seed = 1, opts: { noise?: number } 
       dominant: last.dominant ? noisy(last.dominant, noise * body.width * 0.5, n) : null,
       other: last.other ? noisy(last.other, noise * body.width * 0.5, n + 7) : null,
       body,
+      bodyPoints: bodyPts,
     });
   }
   return frames;

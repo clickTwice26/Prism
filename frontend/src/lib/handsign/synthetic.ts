@@ -115,7 +115,10 @@ export function makeHand(p: PoseTemplate, side: "right" | "left" = "right"): Han
       tip = mean(tips);
       break;
     case "cee":
-      tip = add(pts[FINGERS.index[3]], add(scale(N, 0.55), scale(F, -0.45)));
+      // A wide C (ceeopen) leaves a bigger gap between thumb and fingers.
+      tip = p.shape === "ceeopen"
+        ? add(pts[FINGERS.index[3]], add(scale(N, 0.75), scale(F, -0.6)))
+        : add(pts[FINGERS.index[3]], add(scale(N, 0.55), scale(F, -0.45)));
       break;
     case "across":
       tip = add(add(scale(F, 0.75), scale(T, -0.1)), scale(N, 0.3));

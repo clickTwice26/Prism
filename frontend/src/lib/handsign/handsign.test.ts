@@ -160,3 +160,18 @@ test("instructions say where the palm really faces", async () => {
   assert.match(dom.text, /fingers point to your left, palm faces toward you/);
   assert.match(other.text, /fingers point up, palm faces away from you/);
 });
+
+test("smoothing takes out jitter and starts again when the hand is lost", async () => {
+  const { PointSmoother, shapeFeatures: sf } = await import("./hand.ts");
+  const clean = makeHand({ shape: "flathand", ext: "u", palm: "d" });
+  const sm = new PointSmoother(0.5);
+  let out = null;
+  for (let i = 0; i < 12; i++) out = sm.push(noisy(clean, 0.15, i + 1));
+  const raw = sf(noisy(clean, 0.15, 99)).straight.slice(1);
+  const smooth = sf(out!).straight.slice(1);
+  const err = (xs: number[]) => xs.reduce((a, x) => a + (1 - x), 0);
+  assert.ok(err(smooth) < err(raw), `smoothed fingers look straighter (${err(smooth).toFixed(2)} vs ${err(raw).toFixed(2)})`);
+  assert.equal(sm.push(null), null);
+  const fresh = sm.push(clean)!;
+  assert.deepEqual(fresh[8], clean[8], "a newly found hand is not mixed with the old one");
+});
