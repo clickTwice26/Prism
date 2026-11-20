@@ -13,9 +13,14 @@
 /frontend/.next/
 /frontend/out/
 /frontend/next-env.d.ts
+/frontend/public/mediapipe/
 *.tsbuildinfo
 
 # os / editors
 .DS_Store
 .idea/
 .vscode/
+
+# python tools
+/ml/.venv/
+__pycache__/

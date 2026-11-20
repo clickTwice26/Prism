@@ -1,5 +1,7 @@
 // Typed client for the Prism Go API.
 
+import type { LetterTemplate } from "./handsign/letters.ts";
+
 export type Lang = "en" | "bn" | "ms";
 
 export const LANGUAGES: { code: Lang; label: string; speech: string }[] = [
@@ -193,3 +195,35 @@ export function uploadSignVideo(u: SignUpload): Promise<SignVideo> {
   form.set("video", u.video, `sign.${ext}`);
   return upload<SignVideo>("/api/sign/videos", form);
 }
+
+// ---- Sign recognition (docs/sign-recognition-plan.md) ----
+
+export const getLetterTemplates = () => request<LetterTemplate[]>("/api/sign/templates?section=Letters");
+
+export interface SampleFrame {
+  t: number;
+  hands: { side: "right" | "left"; points: [number, number, number][] }[];
+}
+export interface NewSignSample {
+  kind: "letter";
+  label: string;
+  signer: string;
+  dominant: "right" | "left";
+  deaf: boolean;
+  consent: boolean;
+  frames: SampleFrame[];
+  features: number[][];
+  feature_version: number;
+}
+export interface SignSampleInfo {
+  id: number;
+  kind: string;
+  label: string;
+  signer: string;
+  dominant: "right" | "left";
+  deaf: boolean;
+  created_at: string;
+}
+export const saveSignSample = (s: NewSignSample) => post<SignSampleInfo>("/api/sign/samples", s);
+export const listSignSamples = (kind = "letter") => request<SignSampleInfo[]>(`/api/sign/samples?kind=${kind}`);
+export const deleteSignSample = (id: number) => request<void>(`/api/sign/samples/${id}`, { method: "DELETE" });

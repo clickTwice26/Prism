@@ -3,11 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-mediapipe.mjs",
     "dev": "next dev --port 3100",
+    "prebuild": "node scripts/copy-mediapipe.mjs",
     "build": "next build",
     "start": "next start --port 3100",
     "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -15,6 +18,7 @@
     "@emotion/styled": "^11.14.1",
     "@hugeicons/core-free-icons": "^4.4.0",
     "@hugeicons/react": "^1.1.10",
+    "@mediapipe/tasks-vision": "^1.2.3",
     "@mui/material": "^9.5.0",
     "@mui/material-nextjs": "^9.5.0",
     "next": "16.4.6",
