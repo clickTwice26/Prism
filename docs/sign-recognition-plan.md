@@ -165,13 +165,57 @@ corpus descriptions may differ from how deaf people sign. Next: record at least 
 letter from several people, ideally deaf signers, then run `train_letters` and report held-out
 accuracy against the 90% target.
 
+## Phase 2 status (2026-11-20)
+
+Built, and checked with synthetic signers and in the browser; **not yet measured on real people**.
+
+- **Demo vocabulary:** 43 words in `frontend/src/lib/handsign/words.ts` (health 10, school 12, daily
+  life 10, people and feelings 8, questions 3), 60 variants in the corpus. Most family words (mother,
+  brother, sister, home) and yes/no are not in the corpus: they need the community lexicon.
+- **Body tracking:** MediaPipe Pose (lite) runs beside hand tracking. `body.ts` places every
+  HamNoSys body site (forehead, eyes, nose, mouth, chin, neck, shoulders, chest, stomach…) from the
+  face and shoulder points, in shoulder widths, in 2D (pose and hand depth estimates do not share
+  a scale).
+- **Expected paths:** `motion.ts` turns each sign into keyframes: where each hand should be, its
+  shape and direction, through moves, arcs, circles, handshape changes, wiggles and repeats.
+  Mirrored two-hand signs move the other hand the opposite way; parallel ones move it along.
+- **Matcher:** `words.ts` aligns a signing with each word's keyframes by dynamic time warping and
+  scores handshape, starting place, movement, direction and the other hand. It explains the result
+  and names the weakest part for the coach. A segmenter cuts signs from the stream (hand raised above
+  the waist, then dropped). Scoring all 43 words takes about 1.4 ms.
+- **Sign words page** (`/signs`): Recognise, Practise a word (step-by-step instructions and
+  feedback) and Record samples (hand and body points, never video). A simulation mode signs words
+  with computer-made signers.
+- **Python:** `prism_ml.train_words` keeps a few prototype recordings per word, measures held-out
+  accuracy and writes `frontend/public/models/words.json`; the browser uses the same alignment
+  distance (checked to match Python exactly) and blends it 50/50.
+
+| Check | Result |
+| --- | --- |
+| 60 word variants from synthetic signers | 60 of 60 top-1 |
+| Heavier noise (0.06 / 0.1 shoulder widths) | 59/60 and 52/60 top-1; 60/60 and 58/60 top-3 |
+| Signed 0.6 shoulder widths too low | 39/60 top-1: location matters, as it should |
+| In the browser (simulation) | recognises জ্বর, বই, পানি, ধন্যবাদ; practice feedback works |
+| Python word model on synthetic recordings, held out by signer | runs; exported model loads in the browser |
+
+Two findings that changed earlier work:
+
+- **HamNoSys palm codes are relative to the finger direction.** 41% of corpus poses had the palm
+  "facing" the way the fingers point, which no hand can do. Read as HamNoSys intends (the palm as if
+  the fingers pointed forward, then turned with them) every pose becomes possible: জ্বর (fever) is a
+  hand laid on the forehead, palm toward the signer. `palmVector` in `hand.ts` applies this
+  everywhere: letters, words, instructions and synthetic hands.
+- **Bangla text is now Unicode NFC everywhere** (corpus names, term labels, lesson text). ো can be
+  written as one code point or two; three demo words did not match until this was fixed. The same
+  bug would have stopped some glossary signs from appearing in lessons.
+
 ## Phases
 
 | Phase | Goal | Done when |
 | --- | --- | --- |
 | **0. Data** (Nov 21–24, mostly done Nov 20) | Parse all SiGML into part templates; list and fix the files that fail; map 1994 dictionary pages to their signs; check the description licences | Templates for at least 3,700 words, and a list of known gaps |
 | **1. Fingerspelling** (Nov 25–30; built Nov 20, accuracy not yet measured) | Handshape classifier; recognise the 37 letters of the two-hand alphabet live in the browser | At least 90% letter accuracy on the team's own recordings; demo for the "Zero to Launch" submission |
-| **2. Single signs** (Dec 1–20) | Location, direction and movement detectors; matcher with explanations for 30–50 chosen signs (health, family, school) | Correct sign in the top 3 at least 80% of the time on held-out recordings by people who did not build it, ideally deaf signers |
+| **2. Single signs** (Dec 1–20; built Nov 20, accuracy not yet measured) | Location, direction and movement detectors; matcher with explanations for 30–50 chosen signs (health, family, school) | Correct sign in the top 3 at least 80% of the time on held-out recordings by people who did not build it, ideally deaf signers |
 | **3. Congress demo** (Dec 26) | A parent practises signs and gets part-by-part feedback; fingerspelling; review assistant on one clip | Runs live on a laptop and a mid-range phone |
 | **4. After the Congress** | Grow to hundreds of signs; tune templates with approved clips; real signers' variation; pilot with deaf partners | Accuracy reported per sign and per part on a public test set built with deaf partners |
 

@@ -15,6 +15,7 @@ research and roadmap are in [docs/sign-language-plan.md](docs/sign-language-plan
 | --- | --- | --- |
 | Lessons | Deaf and hard-of-hearing learners | The lesson in Bangla, English or Malay. Key terms with an approved sign are underlined; tapping one plays a 2-4 s silent, looping clip. A recorded interpreter can sign the whole lesson in a window learners can move, resize or hide |
 | Fingerspell | Deaf learners, families, signers | Spell with the Bangla two-hand alphabet and Prism types it; practise a letter with feedback on each part; record consented samples (skeleton points only) to train the recogniser |
+| Sign words | Deaf learners, families, signers | Sign one of 43 everyday, school and health words; Prism recognises it from handshape, place on the body, movement and direction, explains why, and coaches the part to fix |
 | Live class | Deaf and hard-of-hearing learners, sign interpreters | Teacher camera or screen with live captions and a translatable transcript whose key terms link to their signs. A Bangla Sign Language interpreter can join from anywhere and sign as a second video |
 | Sign glossary | Teachers, sign interpreters, deaf reviewers | Add lessons and find their key terms (AI or by hand), record or upload signs with the signer's consent, a deaf review queue, a missing-sign list for the community, and the lexicon with regional variants |
 

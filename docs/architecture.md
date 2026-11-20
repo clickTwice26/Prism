@@ -54,7 +54,7 @@ input, 429 when rate-limited, 503 when AI is not configured, 502 when the AI pro
 | GET | `/sign/missing` | → lesson terms with no approved sign, the lessons that need them and any `reference` dictionary entries |
 | GET | `/sign/reference?q=` | → `{size, matches}` from the reference word list |
 | GET | `/sign/templates?section=` · `?words=` | → documented signs broken into parts (handshape, orientation, location, actions) for recognition; a section or words is required. See [sign-recognition-plan.md](sign-recognition-plan.md) |
-| POST | `/sign/samples` | `{kind: letter, label, signer, dominant, deaf, consent: true, frames: [{t, hands: [{side, points: 21×[x,y,z]}]}], features, feature_version}` → sample; skeleton points only, never video |
+| POST | `/sign/samples` | `{kind: letter\|word, label, signer, dominant, deaf, consent: true, frames: [{t, hands: [{side, points: 21×[x,y,z]}], body?: 33×[x,y,z]}], features, feature_version}` → sample; skeleton points only, never video; the label must be a documented letter or word |
 | GET | `/sign/samples?kind=letter[&full=1]` | → samples, with frames and features when `full=1` (for the Python tools) |
 | DELETE | `/sign/samples/{id}` | → 204; the signer withdraws a sample |
 | POST | `/sign/videos` | multipart `kind=term\|lesson, term_id\|lesson_id, signer, region, consent=yes, video` (WebM or MP4; term clips up to 15 MB) → video, status `pending` |
@@ -127,19 +127,21 @@ students connected to different API instances share one class. Rosters live in
 
 `uv run python -m prism_ml.train_letters --api http://localhost:8080` trains the learned letter
 model from recorded samples, reports held-out accuracy and writes
-`frontend/public/models/letters.json`. Tests: `uv run python -m unittest discover -s tests`.
+`frontend/public/models/letters.json`. `prism_ml.train_words` does the same for words (prototype
+recordings compared by dynamic time warping) and writes `frontend/public/models/words.json`. Tests:
+`uv run python -m unittest discover -s tests`.
 
 ## Frontend (`frontend/`)
 
 | Path | Role |
 | --- | --- |
-| `src/app/*` | Routes: `/`, `/lessons` (lesson text with signs and the recorded interpreter), `/live` (student, teacher and interpreter), `/fingerspell` (spell, practise and record letters with the two-hand alphabet), `/sign` (sign glossary: lesson terms, deaf review, missing signs, lexicon) |
+| `src/app/*` | Routes: `/`, `/lessons` (lesson text with signs and the recorded interpreter), `/live` (student, teacher and interpreter), `/fingerspell` (spell, practise and record letters with the two-hand alphabet), `/signs` (recognise, practise and record 43 everyday, school and health words), `/sign` (sign glossary: lesson terms, deaf review, missing signs, lexicon) |
 | `src/features/*` | One folder per area; screens are client components |
 | `src/components` | App shell with a collapsible sidebar (a drawer on mobile), reading-settings drawer, announcer (live region + snackbar), readable text with sign links, sign clip player, interpreter window, icon wrapper |
 | `src/lib/api.ts` | Typed API client. The API base is `NEXT_PUBLIC_API_URL`, else the page's host on port 8080 |
 | `src/lib/settings.tsx` | Per-learner settings in `localStorage`: language, colours (light, dark, high contrast), text size, word spacing, sign glossary, interpreter window (on, size, corner) |
 | `src/lib/signs.tsx` | The approved sign lexicon, shared app-wide, and the matcher that finds signed terms in text |
-| `src/lib/handsign` | Sign recognition without a browser dependency (tested with `npm test`): hand geometry and handshape scoring, the letter matcher and stabiliser, the learned-model runner, plain-language descriptions and a synthetic hand generator |
+| `src/lib/handsign` | Sign recognition without a browser dependency (tested with `npm test`): hand geometry and handshape scoring (with HamNoSys palm codes read relative to the fingers), body sites, word keyframes and the time-aligned word matcher and segmenter, the letter matcher and stabiliser, the learned-model runners, plain-language descriptions, and synthetic hands and signers |
 | `src/lib/theme.ts` | MUI theme: type scale, colour modes and a strong focus ring. See [design.md](design.md) |
 
 ## Research behind the features
