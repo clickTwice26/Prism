@@ -53,6 +53,7 @@ input, 429 when rate-limited, 503 when AI is not configured, 502 when the AI pro
 | GET | `/sign/lexicon` | → every term with an approved sign, with its clips (regional variants) |
 | GET | `/sign/missing` | → lesson terms with no approved sign, the lessons that need them and any `reference` dictionary entries |
 | GET | `/sign/reference?q=` | → `{size, matches}` from the reference word list |
+| GET | `/sign/sigml?id=` · `?word=` | → a documented sign's raw SiGML (HamNoSys) description, for the 3D preview; 404 if not documented |
 | GET | `/sign/templates?section=` · `?words=` · `?all=1` | → documented signs broken into parts (handshape, orientation, location, actions) for recognition; gzip-compressed when accepted. See [sign-recognition-plan.md](sign-recognition-plan.md) |
 | PUT | `/sign/videos/{id}/derived` | `{template}` → 204; the sign template the browser wrote down from an approved key-term clip (removed if the clip is rejected or withdrawn). Terms return these as `derived` |
 | POST | `/sign/samples` | `{kind: letter\|word, label, signer, dominant, deaf, consent: true, frames: [{t, hands: [{side, points: 21×[x,y,z]}], body?: 33×[x,y,z]}], features, feature_version}` → sample; skeleton points only, never video; the label must be a documented letter or word |
@@ -84,8 +85,14 @@ people sign and deaf reviewers approve.
 - **Missing signs.** A lesson term with no approved sign is an open request on the Sign glossary
   page, where interpreters and deaf signers propose signs. When the reference word list
   (`SIGN_REFERENCE_DIR`, the IsharaKotha corpus) already has the word, the request says so, so the
-  community's existing sign is recorded instead of a new one being coined. Only the corpus's word
-  names are read; its avatar animations are not used.
+  community's existing sign is recorded instead of a new one being coined.
+- **3D sign preview.** The Sign dictionary page (`/dictionary`) and the Practise tab show a 3D
+  character signing a documented word from its HamNoSys description. The character is the CWA
+  Signing Avatars player (University of East Anglia, CC BY-SA 4.0), loaded from UEA's servers into
+  its own frame (`public/avatar.html`) and driven by `postMessage`. Chrome removed built-in XSLT,
+  which CWASA needs, so the frame loads the `xslt-polyfill` package first (copied into
+  `public/vendor` by `scripts/copy-assets.mjs`). Every preview is labelled as made by software and
+  not checked by a deaf reviewer.
 - **Learners.** The frontend loads the lexicon once. Lesson text and every live transcript line
   underline terms that have a sign; tapping one plays its looping clip, with a slow mode and the
   signer and reviewer named. English and Malay match whole words with plural endings; Bangla also
@@ -136,9 +143,9 @@ recordings compared by dynamic time warping) and writes `frontend/public/models/
 
 | Path | Role |
 | --- | --- |
-| `src/app/*` | Routes: `/`, `/lessons` (lesson text with signs and the recorded interpreter), `/live` (student, teacher and interpreter), `/fingerspell` (spell, practise and record letters with the two-hand alphabet), `/signs` (recognise, practise and record 43 everyday, school and health words), `/sign` (sign glossary: lesson terms, deaf review, missing signs, lexicon) |
+| `src/app/*` | Routes: `/`, `/lessons` (lesson text with signs and the recorded interpreter), `/live` (student, teacher and interpreter), `/fingerspell` (spell, practise and record letters with the two-hand alphabet), `/dictionary` (search about 3,500 documented signs; a 3D signer performs each), `/signs` (recognise, practise and record 43 everyday, school and health words), `/sign` (sign glossary: lesson terms, deaf review, missing signs, lexicon) |
 | `src/features/*` | One folder per area; screens are client components |
-| `src/components` | App shell with a collapsible sidebar (a drawer on mobile), reading-settings drawer, announcer (live region + snackbar), readable text with sign links, sign clip player, interpreter window, icon wrapper |
+| `src/components` | App shell with a collapsible sidebar (a drawer on mobile), reading-settings drawer, announcer (live region + snackbar), readable text with sign links, sign clip player, 3D sign preview (`SignAvatar`), interpreter window, icon wrapper |
 | `src/lib/api.ts` | Typed API client. The API base is `NEXT_PUBLIC_API_URL`, else the page's host on port 8080 |
 | `src/lib/settings.tsx` | Per-learner settings in `localStorage`: language, colours (light, dark, high contrast), text size, word spacing, sign glossary, interpreter window (on, size, corner) |
 | `src/lib/signs.tsx` | The approved sign lexicon, shared app-wide, and the matcher that finds signed terms in text |
@@ -157,7 +164,7 @@ The full list of sources is in [sign-language-plan.md](sign-language-plan.md#sou
 | Captions plus a sign interpreter beat either alone (Debevc et al., 2015) | Captions stay on under the interpreter window and glossary signs |
 | Captions suit factual content; sign suits step-by-step content (Almalhy, 2022) | Glossary signs for concepts; the interpreter window for whole lessons |
 | A sign interpreter viewers can toggle rated well; the best size and position depend on the content (Boudreault et al., 2024) | The interpreter window can be switched on and off, resized and moved, and remembers the learner's choice |
-| Deaf communities distrust signing avatars (Coy et al., 2024); co-designed signs filled BdSL gaps (Hasan et al., 2025) | Only human signers; deaf reviewers approve every sign; missing signs go to the community |
+| Deaf communities distrust signing avatars (Coy et al., 2024); co-designed signs filled BdSL gaps (Hasan et al., 2025) | Human signers first; deaf reviewers approve every clip; the 3D preview is labelled as software and only shows documented descriptions; missing signs go to the community |
 | Word spacing helps more than special fonts (Azzarello 2026; Galliussi 2020) | A word-spacing setting, no special font |
 
 ## Not built yet

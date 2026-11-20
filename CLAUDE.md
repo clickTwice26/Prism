@@ -15,8 +15,10 @@ without being asked.
   `src/components` shared UI, `src/lib` the API client, settings, theme and the shared sign lexicon.
 - `ml/`: Python tools (uv) that train and evaluate sign recognition from recorded samples.
 - `docs/`: architecture and API notes. Keep them in step with the code. Sign language work follows
-  `docs/sign-language-plan.md`: people sign and deaf reviewers approve. Never add AI signing avatars
-  or generated signs.
+  `docs/sign-language-plan.md`: people sign and deaf reviewers approve. Human-signed clips always
+  come first. The one avatar is the 3D sign preview (CWASA, `public/avatar.html`), which plays only
+  documented HamNoSys descriptions and is always labelled as software, not reviewed. Never present it
+  as a person's signing, and never generate signs that have no written description.
 
 ## Commands
 

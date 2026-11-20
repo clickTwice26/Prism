@@ -138,7 +138,7 @@ Built, and checked with synthetic hands and in the browser; **not yet measured o
   (plain-language steps, a score for each part and feedback on the weakest part) and Record samples.
   A "Simulate" switch drives the whole page with computer-made hands when there is no camera.
 - **Hand tracking:** MediaPipe Hand Landmarker in the browser. The WebAssembly runtime is served by
-  the app (`scripts/copy-mediapipe.mjs`); the hand model loads from Google's model storage. Video
+  the app (`scripts/copy-assets.mjs`); the hand model loads from Google's model storage. Video
   stays on the device; only the 21 points per hand are used.
 - **Letter matcher** (`frontend/src/lib/handsign`): no training needed. Each hand's shape is scored
   from finger bends, spread and thumb position (including the thumb and "bent" modifiers); direction
@@ -290,13 +290,14 @@ several approved clips per term should be combined.
 | Similar signs differ by one small part | Report the top 3 with explanations; teach the coach to point at the differing part |
 | Skeleton tracking fails with fast or overlapping hands, poor light or cheap cameras | Test on a range of phones; show "can't see your hands clearly" instead of guessing |
 | Left-handed signers | Mirror the templates |
-| Licence of the IsharaKotha corpus and 1994 dictionary unknown | Use them as internal references until the licences are confirmed; do not republish the drawings or files |
-| Building recognition on top of an avatar corpus could be read as endorsing avatars | Prism never renders the descriptions as an animated signer; it only reads the part information |
+| Licence of the IsharaKotha corpus and 1994 dictionary unknown | Use them as internal references until the licences are confirmed; do not commit the drawings or files. The 3D preview sends one description at a time to the learner's browser, so confirm the IsharaKotha licence before a public launch. The CWASA player is CC BY-SA 4.0 and is credited under every preview |
+| Building recognition on top of an avatar corpus could be read as endorsing avatars | The 3D preview (CWASA) replays only documented descriptions, labelled as software and unreviewed; human clips come first wherever they exist |
 
 ## Ethics
 
 - Only skeleton points are processed; video stays on the device.
-- No avatars and no generated signing: the descriptions are used only to recognise and to explain.
+- No generated signing beyond the labelled 3D preview of documented descriptions; the descriptions
+  are otherwise used only to recognise and to explain.
 - Deaf reviewers decide which descriptions count as correct BdSL, and their corrections become
   part of the templates.
 - Test recordings by deaf signers need the same per-clip consent as the lexicon, and they are not

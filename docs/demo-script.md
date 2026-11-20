@@ -20,7 +20,8 @@ gives about 3 minutes per pitch. This script fits that, with a fallback for ever
 | Time | Show | Say |
 | --- | --- | --- |
 | 0:00 | Home | "Deaf children in Bangladesh sit in classes they cannot hear, and their own language, Bangla Sign Language, is barely in their textbooks. Prism Sign brings the lesson to them in sign, made by people and checked by deaf reviewers." |
-| 0:25 | Lessons | Tap an underlined key word; the signed clip plays. Show the interpreter window: move it, resize it. "Every sign here was recorded by a person and approved by a named deaf reviewer. No avatars." |
+| 0:25 | Lessons | Tap an underlined key word; the signed clip plays. Show the interpreter window: move it, resize it. "Every sign here was recorded by a person and approved by a named deaf reviewer." |
+| 0:45 | Sign dictionary, type "doctor" | The 3D signer performs it; switch on Slow. "For the 3,500 documented words nobody has recorded yet, a 3D signer shows the sign from its written description, labelled as a preview until a deaf signer records it." |
 | 0:55 | Sign words → Practise, word জ্বর | Sign it badly first (wrong place): the coach says "Start at your forehead". Sign it right: "Well done". "Prism checks each part of a sign against its description: handshape, where it starts, movement and direction. That is how a hearing parent learns to sign with their child." |
 | 1:35 | Show what Prism sees (switch) | "No video leaves the device. Only the hand and body joints are used." |
 | 1:50 | Fingerspell → Practise ক | Part-by-part bars. "For words with no sign yet, the two-hand alphabet." |
@@ -33,8 +34,9 @@ gives about 3 minutes per pitch. This script fits that, with a fallback for ever
 - **Accuracy:** "On synthetic signers it recognises all 43 demo words; we are now measuring it on
   real signers with held-out testing by person, and we report that number, not the synthetic one."
   Bring the latest output of `node scripts/analyze-samples.ts` if real samples exist.
-- **Why not AI avatars:** deaf communities distrust them (Coy et al., 2024), and BdSL data is too
-  small to generate signing well.
+- **Why an avatar at all:** deaf communities distrust avatars that replace interpreters (Coy et al.,
+  2024), so Prism uses one only as a labelled preview of documented signs, and human clips replace
+  it as they are approved. It never translates free text into sign.
 - **Where the signs come from:** the IsharaKotha corpus (HamNoSys descriptions of about 3,600 words),
   checked against the 1994 Bengali Sign Language Dictionary, and new signs from the community.
 - **Business:** schools and NGOs pay per seat; government and donors fund rollout; signers are paid

@@ -3,8 +3,9 @@
 **The same lesson, in Bangla Sign Language.** Prism Sign gives deaf learners in Bangladesh the class
 lesson with its key science words signed, captions that stay on, and a sign interpreter they can
 move, resize or hide. AI does the routine work: finding each lesson's key terms and translating.
-People do the signing, and deaf reviewers approve every sign before learners see it. It does not
-use AI signing avatars.
+People do the signing, and deaf reviewers approve every sign before learners see it. For the
+3,500 documented words that no person has recorded yet, a 3D signer previews the sign from its
+written description, clearly labelled as a preview.
 
 Built for the International AI Builders Congress 2026, LearnSphere AI → AI Teacher track. The plan,
 research and roadmap are in [docs/sign-language-plan.md](docs/sign-language-plan.md).

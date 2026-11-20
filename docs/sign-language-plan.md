@@ -9,7 +9,7 @@ Phase 1 is built in Prism (see [architecture.md](architecture.md#prism-sign)). P
 - **Sign glossary:** teachers add lessons; AI or teachers set each lesson's key terms in English, Bangla and Malay. Approved clips are linked in lesson text and in live captions and transcripts.
 - **Interpreter window:** recorded interpreter videos per lesson, and a live **interpreter** role in the live class. Learners can switch the window on and off, resize it and move it, and the choice is remembered. Captions stay on.
 - **Community lexicon:** the Sign glossary page has lesson terms, a deaf review queue (named reviewers, approve or reject), missing signs and the lexicon. Signers name themselves, consent per clip and can withdraw a clip. Regional variants are kept side by side.
-- **Existing signs first:** missing-sign requests show when the IsharaKotha word list already documents the word. Only its word list is read; its avatar animations are not used.
+- **Existing signs first:** missing-sign requests show when the IsharaKotha word list already documents the word. A 3D signer previews each documented sign from its description (Sign dictionary and Practise), labelled as software and not reviewed, until a person records it.
 
 Next: recognising signs from their written description, without a large video dataset. See [sign-recognition-plan.md](sign-recognition-plan.md).
 
@@ -17,7 +17,7 @@ Not built yet: **sign as an adaptive layer** (part 4 below). Prism's adaptive le
 
 ## Summary
 
-**Prism Sign gives deaf learners in Bangladesh the same lesson in Bangla Sign Language (BdSL), starting with the words they miss most: the key science terms of each lesson.** It does not use AI signing avatars, which deaf communities do not yet trust.
+**Prism Sign gives deaf learners in Bangladesh the same lesson in Bangla Sign Language (BdSL), starting with the words they miss most: the key science terms of each lesson.** Human signers come first, because deaf communities do not yet trust signing avatars. A 3D preview fills the gap only for documented signs nobody has recorded yet, and says so.
 
 It is built in three layers:
 
@@ -86,7 +86,7 @@ Sign and captions work best together, controlled by the learner, made by people.
 
 ### Not in scope
 
-- **AI signing avatars or automatic text-to-sign translation.** Communities don't yet trust them and the data is too small.
+- **Automatic text-to-sign translation, or avatars that replace human signers.** Communities don't yet trust them and the data is too small. The 3D preview only replays documented word signs and is labelled as such.
 - **Recognising a student's signing,** for example to answer questions. This is a research phase from July 2027, built on consented clips.
 - **Replacing interpreters.** Prism makes each interpreter reach more students and reuses their work.
 
