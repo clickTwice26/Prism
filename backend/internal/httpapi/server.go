@@ -66,6 +66,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/sign/missing", s.missingSigns)
 	mux.HandleFunc("GET /api/sign/reference", s.signReference)
 	mux.HandleFunc("GET /api/sign/templates", s.signTemplates)
+	mux.HandleFunc("GET /api/sign/sigml", s.signSiGML)
 	mux.HandleFunc("POST /api/sign/samples", s.createSignSample)
 	mux.HandleFunc("GET /api/sign/samples", s.listSignSamples)
 	mux.HandleFunc("DELETE /api/sign/samples/{id}", s.deleteSignSample)

@@ -7,7 +7,9 @@
 // The corpus is IsharaKotha, laid out as
 // <dir>/Sections/<n> <বাংলা> (<English>)/<বাংলা> (<English>).sigml, where each
 // file describes a sign in HamNoSys notation. Prism never animates these
-// descriptions as an avatar: it only reads their parts.
+// descriptions itself: it reads their parts, and hands the raw SiGML to a
+// third-party 3D signer (CWASA) that the learner sees labelled as a preview,
+// not as a reviewed sign.
 package signref
 
 import (
@@ -47,6 +49,7 @@ type Index struct {
 	byNorm    map[string][]Entry
 	templates map[string]*Template
 	order     []string
+	paths     map[string]string
 	failures  []Failure
 }
 
@@ -80,7 +83,7 @@ var glossSuffix = regexp.MustCompile(`^(.*?[^A-Za-z0-9 _])_([A-Za-z].*)$`)
 
 // Load walks dir for .sigml files. A missing dir gives an empty index.
 func Load(dir string) *Index {
-	idx := &Index{byNorm: map[string][]Entry{}, templates: map[string]*Template{}}
+	idx := &Index{byNorm: map[string][]Entry{}, templates: map[string]*Template{}, paths: map[string]string{}}
 	if dir == "" {
 		return idx
 	}
@@ -100,6 +103,7 @@ func Load(dir string) *Index {
 			e.Section = secBn
 		}
 		idx.add(e)
+		idx.paths[e.ID] = path
 
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -176,6 +180,17 @@ func (x *Index) Templates(section string, words []string) []*Template {
 		out = append(out, t)
 	}
 	return out
+}
+
+// SiGML returns the raw description file of a documented word, by its ID.
+// Only IDs found when loading are served, so no path can be made up.
+func (x *Index) SiGML(id string) ([]byte, bool) {
+	p, ok := x.paths[id]
+	if !ok {
+		return nil, false
+	}
+	b, err := os.ReadFile(p)
+	return b, err == nil
 }
 
 // Failures lists corpus files that could not be read.

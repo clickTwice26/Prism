@@ -99,3 +99,26 @@ func TestUnderscoresInNames(t *testing.T) {
 		}
 	}
 }
+
+func TestSiGMLServesOnlyLoadedFiles(t *testing.T) {
+	dir := t.TempDir()
+	sec := filepath.Join(dir, "Sections", "14 শিক্ষা (Education)")
+	if err := os.MkdirAll(sec, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := []byte("<sigml><hns_sign><hamnosys_manual><hamflathand/></hamnosys_manual></hns_sign></sigml>")
+	if err := os.WriteFile(filepath.Join(sec, "বই (Book).sigml"), body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx := Load(dir)
+	ts := idx.Templates("", []string{"book"})
+	if len(ts) != 1 {
+		t.Fatalf("want the book template, got %d", len(ts))
+	}
+	if b, ok := idx.SiGML(ts[0].ID); !ok || string(b) != string(body) {
+		t.Fatalf("want the file back, got %q %v", b, ok)
+	}
+	if _, ok := idx.SiGML("../../etc/passwd"); ok {
+		t.Fatal("unknown IDs must not be served")
+	}
+}

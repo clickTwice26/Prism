@@ -278,6 +278,27 @@ func (s *Server) signTemplates(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// signSiGML serves a documented word's SiGML description, by corpus ID or by
+// word, for the 3D sign preview.
+func (s *Server) signSiGML(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		if word := strings.TrimSpace(r.URL.Query().Get("word")); word != "" {
+			if ts := s.signRef.Templates("", []string{word}); len(ts) > 0 {
+				id = ts[0].ID
+			}
+		}
+	}
+	b, ok := s.signRef.SiGML(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "no documented sign")
+		return
+	}
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	_, _ = w.Write(b)
+}
+
 func (s *Server) signReference(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	writeJSON(w, http.StatusOK, map[string]any{
