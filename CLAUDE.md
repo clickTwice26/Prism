@@ -13,6 +13,7 @@ without being asked.
   and `httpapi` (routes, handlers, middleware, sign uploads and media).
 - `frontend/`: Next.js 16 App Router. `src/app` holds routes, `src/features/<area>` the screens,
   `src/components` shared UI, `src/lib` the API client, settings, theme and the shared sign lexicon.
+- `ml/`: Python tools (uv) that train and evaluate sign recognition from recorded samples.
 - `docs/`: architecture and API notes. Keep them in step with the code. Sign language work follows
   `docs/sign-language-plan.md`: people sign and deaf reviewers approve. Never add AI signing avatars
   or generated signs.
@@ -24,7 +25,8 @@ docker compose up -d postgres redis          # Postgres :55432, Redis :56379
 cd backend && go run ./cmd/api               # API on :8080
 cd backend && go vet ./... && go test ./...
 cd frontend && npm run dev                   # web on :3100
-cd frontend && npm run typecheck && npm run lint && npm run build
+cd frontend && npm run typecheck && npm run lint && npm test && npm run build
+cd ml && uv run python -m unittest discover -s tests   # Python tools (uv)
 ```
 
 ## Conventions

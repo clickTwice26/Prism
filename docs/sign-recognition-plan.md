@@ -130,12 +130,47 @@ Still open from Phase 0: mapping the 1994 dictionary pages to signs (the scan ha
 and no OCR tool is installed yet), and the licence check. Some words appear in more than one section
 with different descriptions; both are kept as variants.
 
+## Phase 1 status (2026-11-20)
+
+Built, and checked with synthetic hands and in the browser; **not yet measured on real people**.
+
+- **Fingerspell page** (`/fingerspell`): Spell (type a word letter by letter), Practise a letter
+  (plain-language steps, a score for each part and feedback on the weakest part) and Record samples.
+  A "Simulate" switch drives the whole page with computer-made hands when there is no camera.
+- **Hand tracking:** MediaPipe Hand Landmarker in the browser. The WebAssembly runtime is served by
+  the app (`scripts/copy-mediapipe.mjs`); the hand model loads from Google's model storage. Video
+  stays on the device; only the 21 points per hand are used.
+- **Letter matcher** (`frontend/src/lib/handsign`): no training needed. Each hand's shape is scored
+  from finger bends, spread and thumb position (including the thumb and "bent" modifiers); direction
+  from finger and palm vectors in the signer's frame; and the contact point from the two named
+  hand parts. Parts are combined with a weighted geometric mean, contact weighted most. A stabiliser
+  types a letter after it has been the confident best guess for most of the last 12 frames.
+- **Recorded samples:** `POST /api/sign/samples` stores skeleton points and a 151-number feature
+  vector per frame, with the signer's consent, and they can be deleted.
+- **Python** (`ml/`): `prism_ml.train_letters` trains standardisation + logistic regression on the
+  samples, reports accuracy on held-out signers, and writes `frontend/public/models/letters.json`,
+  which the page blends 50/50 with the template matcher.
+
+| Check | Result |
+| --- | --- |
+| Base handshapes from synthetic hands, 3 orientations each | all in the top 3; at most a few look-alikes |
+| Letters from synthetic two-hand poses with noise | 37 of 37 top-1 |
+| End to end in the browser (simulation) | types ক ল ম correctly; practice feedback works |
+| Python training on synthetic recordings, held out by signer | runs and exports a model the browser accepts |
+
+The synthetic results only show that geometry, scoring and plumbing are consistent with the
+descriptions they were generated from. **Real accuracy is unknown until people record samples**:
+real hands vary, MediaPipe struggles when hands overlap (as they do in these letters), and the
+corpus descriptions may differ from how deaf people sign. Next: record at least 5 samples of every
+letter from several people, ideally deaf signers, then run `train_letters` and report held-out
+accuracy against the 90% target.
+
 ## Phases
 
 | Phase | Goal | Done when |
 | --- | --- | --- |
 | **0. Data** (Nov 21–24, mostly done Nov 20) | Parse all SiGML into part templates; list and fix the files that fail; map 1994 dictionary pages to their signs; check the description licences | Templates for at least 3,700 words, and a list of known gaps |
-| **1. Fingerspelling** (Nov 25–30) | Handshape classifier; recognise the 37 letters of the two-hand alphabet live in the browser | At least 90% letter accuracy on the team's own recordings; demo for the "Zero to Launch" submission |
+| **1. Fingerspelling** (Nov 25–30; built Nov 20, accuracy not yet measured) | Handshape classifier; recognise the 37 letters of the two-hand alphabet live in the browser | At least 90% letter accuracy on the team's own recordings; demo for the "Zero to Launch" submission |
 | **2. Single signs** (Dec 1–20) | Location, direction and movement detectors; matcher with explanations for 30–50 chosen signs (health, family, school) | Correct sign in the top 3 at least 80% of the time on held-out recordings by people who did not build it, ideally deaf signers |
 | **3. Congress demo** (Dec 26) | A parent practises signs and gets part-by-part feedback; fingerspelling; review assistant on one clip | Runs live on a laptop and a mid-range phone |
 | **4. After the Congress** | Grow to hundreds of signs; tune templates with approved clips; real signers' variation; pilot with deaf partners | Accuracy reported per sign and per part on a public test set built with deaf partners |
