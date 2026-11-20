@@ -245,6 +245,25 @@ func (s *Server) nextChunk(w http.ResponseWriter, r *http.Request) {
 	rng := rand.New(rand.NewPCG(rand.Uint64(), rand.Uint64()))
 	mix, reason := adapt.Choose(rng, learner.Profile, stats)
 
+	// Sign is a real support only when there is something to sign: an
+	// approved glossary sign in this part, or an interpreter for the lesson.
+	// Otherwise record the mix the learner actually got.
+	signs := []store.SignTerm{}
+	var interpreter *store.SignVideo
+	if mix.Sign {
+		if signs, err = s.chunkSigns(ctx, chunk.Text, learner.Lang); err == nil {
+			interpreter, err = s.db.LessonInterpreter(ctx, lesson.ID)
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "could not load signs")
+			return
+		}
+		if len(signs) == 0 && interpreter == nil {
+			mix.Sign = false
+			reason += " (no approved signs for this part yet)"
+		}
+	}
+
 	text, verification := chunk.Text, gate.Verification("original")
 	if mix.Simple {
 		res, err := s.gate.Simplify(ctx, chunk.Text, learner.Lang)
@@ -263,6 +282,7 @@ func (s *Server) nextChunk(w http.ResponseWriter, r *http.Request) {
 		"attempt_id": attemptID, "chunk": chunk.Idx, "total_chunks": len(chunks),
 		"mix": mix, "mix_key": mix.Key(), "reason": reason,
 		"text": text, "original_text": chunk.Text, "verification": verification, "lang": learner.Lang,
+		"signs": signs, "interpreter": interpreter,
 		"question": map[string]any{"question": chunk.Question.Question, "options": chunk.Question.Options},
 	})
 }

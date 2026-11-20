@@ -38,6 +38,11 @@ type Config struct {
 
 	// AI endpoints are rate limited per client IP (requests per minute).
 	AIRateLimitPerMin int
+
+	// Prism Sign: where uploaded sign videos are stored, and an optional
+	// IsharaKotha corpus folder whose word list is checked for existing signs.
+	SignMediaDir     string
+	SignReferenceDir string
 }
 
 func Load() Config {
@@ -63,6 +68,8 @@ func Load() Config {
 		PiperBin:            env("PIPER_BIN", ""),
 		PiperVoicesDir:      env("PIPER_VOICES_DIR", "piper_voices"),
 		AIRateLimitPerMin:   envInt("AI_RATE_LIMIT_PER_MIN", 30),
+		SignMediaDir:        env("SIGN_MEDIA_DIR", "media/signs"),
+		SignReferenceDir:    env("SIGN_REFERENCE_DIR", "../data/isharakotha/raw/extracted"),
 	}
 }
 

@@ -6,6 +6,7 @@
 # backend
 /backend/bin/
 /backend/piper_voices/
+/backend/media/
 
 # frontend
 /frontend/node_modules/

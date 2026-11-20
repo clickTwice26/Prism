@@ -20,6 +20,7 @@ import (
 	"github.com/clickTwice26/Prism/backend/internal/config"
 	"github.com/clickTwice26/Prism/backend/internal/gate"
 	"github.com/clickTwice26/Prism/backend/internal/live"
+	"github.com/clickTwice26/Prism/backend/internal/signref"
 	"github.com/clickTwice26/Prism/backend/internal/store"
 	"github.com/clickTwice26/Prism/backend/internal/tts"
 )
@@ -33,10 +34,16 @@ type Server struct {
 	piper *tts.Piper
 	hub   *live.Hub
 	log   *slog.Logger
+
+	signRef *signref.Index
 }
 
 func New(cfg config.Config, db *store.Store, c *cache.Cache, aic *ai.Client, piper *tts.Piper, hub *live.Hub, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, db: db, cache: c, ai: aic, gate: gate.New(aic, db, aic.Enabled), piper: piper, hub: hub, log: log}
+	ref := signref.Load(cfg.SignReferenceDir)
+	if ref.Size() > 0 {
+		log.Info("sign reference word list loaded", "words", ref.Size())
+	}
+	return &Server{cfg: cfg, db: db, cache: c, ai: aic, gate: gate.New(aic, db, aic.Enabled), piper: piper, hub: hub, log: log, signRef: ref}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -78,6 +85,22 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/learn/next", s.limited(s.nextChunk))
 	mux.HandleFunc("POST /api/learn/answer", s.answerChunk)
 
+	// N5: Prism Sign (Bangla Sign Language).
+	mux.HandleFunc("GET /api/sign/lessons/{id}", s.getLessonSigns)
+	mux.Handle("POST /api/sign/lessons/{id}/terms/extract", s.limited(s.extractTerms))
+	mux.HandleFunc("POST /api/sign/lessons/{id}/terms", s.addLessonTerm)
+	mux.HandleFunc("DELETE /api/sign/lessons/{id}/terms/{term}", s.removeLessonTerm)
+	mux.HandleFunc("GET /api/sign/lexicon", s.signLexicon)
+	mux.HandleFunc("GET /api/sign/missing", s.missingSigns)
+	mux.HandleFunc("GET /api/sign/reference", s.signReference)
+	mux.HandleFunc("POST /api/sign/videos", s.uploadSignVideo)
+	mux.HandleFunc("GET /api/sign/videos", s.listSignVideos)
+	mux.HandleFunc("GET /api/sign/videos/count", s.signVideoCount)
+	mux.HandleFunc("POST /api/sign/videos/{id}/approve", s.decideSignVideo(true))
+	mux.HandleFunc("POST /api/sign/videos/{id}/reject", s.decideSignVideo(false))
+	mux.HandleFunc("POST /api/sign/videos/{id}/withdraw", s.withdrawSignVideo)
+	mux.HandleFunc("GET /api/sign/media/{file}", s.signMedia)
+
 	mux.HandleFunc("GET /ws/class/{room}", s.liveClass)
 
 	return s.recoverer(s.logRequests(s.cors(mux)))
@@ -92,7 +115,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 			h := w.Header()
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Vary", "Origin")
-			h.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 			h.Set("Access-Control-Allow-Headers", "Content-Type")
 		}
 		if r.Method == http.MethodOptions {
