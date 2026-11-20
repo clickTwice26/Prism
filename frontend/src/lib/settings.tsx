@@ -14,7 +14,16 @@ export interface Settings {
   readAlong: boolean; // highlight each word while reading aloud
   speechRate: number;
   sidebarCollapsed: boolean; // desktop sidebar shows icons only
+  // Prism Sign: underline key terms that have a Bangla Sign Language sign, and
+  // the interpreter window's last state (Boudreault et al., 2024).
+  signGlossary: boolean;
+  interpreterOn: boolean;
+  interpreterSize: InterpreterSize;
+  interpreterCorner: InterpreterCorner;
 }
+
+export type InterpreterSize = "small" | "medium" | "large";
+export type InterpreterCorner = "bottom-right" | "bottom-left" | "top-right" | "top-left";
 
 const DEFAULTS: Settings = {
   lang: "en",
@@ -24,6 +33,10 @@ const DEFAULTS: Settings = {
   readAlong: true,
   speechRate: 1,
   sidebarCollapsed: false,
+  signGlossary: true,
+  interpreterOn: true,
+  interpreterSize: "medium",
+  interpreterCorner: "bottom-right",
 };
 
 const KEY = "prism.settings.v1";

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import GlobalStyles from "@mui/material/GlobalStyles";
 import { SettingsProvider, useSettings } from "@/lib/settings";
+import { SignLexiconProvider } from "@/lib/signs";
 import { buildTheme } from "@/lib/theme";
 import { AnnouncerProvider } from "./Announcer";
 
@@ -21,7 +22,9 @@ function ThemedApp({ children }: { children: ReactNode }) {
       <CssBaseline />
       {/* Text size scales the root font size, so every rem-based size follows. */}
       <GlobalStyles styles={{ html: { fontSize: `${settings.textScale * 100}%` } }} />
-      <AnnouncerProvider>{children}</AnnouncerProvider>
+      <AnnouncerProvider>
+        <SignLexiconProvider>{children}</SignLexiconProvider>
+      </AnnouncerProvider>
     </ThemeProvider>
   );
 }

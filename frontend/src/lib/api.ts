@@ -53,6 +53,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 const post = <T>(path: string, body: unknown) => request<T>(path, { method: "POST", body: JSON.stringify(body) });
 
+// Multipart upload: the browser sets the Content-Type boundary itself.
+async function upload<T>(path: string, form: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${apiBase()}${path}`, { method: "POST", body: form });
+  } catch {
+    throw new ApiError("Could not reach the Prism server. Check that the backend is running.", 0);
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(body?.error ?? `Upload failed (${res.status})`, res.status);
+  }
+  return (await res.json()) as T;
+}
+
 export interface Health {
   status: string;
   postgres: boolean;
@@ -222,6 +237,7 @@ export interface Mix {
   simple: boolean;
   audio: boolean;
   picture: boolean;
+  sign: boolean;
 }
 export interface Arm {
   mix: Mix;
@@ -254,6 +270,8 @@ export interface ChunkView {
   verification: Verification;
   lang: Lang;
   question: { question: string; options: string[] };
+  signs: SignTerm[]; // approved glossary signs in this part (sign mixes only)
+  interpreter: SignVideo | null;
 }
 export const nextChunk = (learnerId: number, lessonId: number, chunk: number) =>
   post<ChunkView>("/api/learn/next", { learner_id: learnerId, lesson_id: lessonId, chunk });
@@ -272,5 +290,103 @@ export function mixLabel(key: string): string {
   const names: string[] = [parts[0] === "simple" ? "Simple text" : "Original text"];
   if (parts.includes("audio")) names.push("read aloud");
   if (parts.includes("picture")) names.push("picture");
+  if (parts.includes("sign")) names.push("sign");
   return names.join(" + ");
+}
+
+// ---- Prism Sign: Bangla Sign Language (N5) ----
+export interface SignVideo {
+  id: number;
+  kind: "term" | "lesson";
+  term_id: number | null;
+  lesson_id: number | null;
+  file: string;
+  mime: string;
+  bytes: number;
+  signer: string;
+  region: string;
+  consent_at: string;
+  status: "pending" | "approved" | "rejected" | "withdrawn";
+  reviewer: string | null;
+  review_note: string;
+  created_at: string;
+  reviewed_at: string | null;
+  term_labels?: Partial<Record<Lang, string>>;
+  lesson_title?: string;
+}
+
+export interface SignTerm {
+  id: number;
+  labels: Partial<Record<Lang, string>>;
+  clips: SignVideo[]; // approved signs; more than one = regional variants
+  pending: number;
+  source?: "ai" | "teacher";
+  lessons?: string[];
+}
+
+export interface SignReference {
+  bn: string;
+  en: string;
+  section: string;
+  source: string;
+}
+
+export interface LessonSigns {
+  lesson_id: number;
+  terms: SignTerm[];
+  signed: number;
+  interpreter: SignVideo | null;
+  pending_interpreter: SignVideo[];
+  ai: boolean;
+  reference: Record<string, SignReference[]>;
+}
+
+export interface MissingSign extends SignTerm {
+  reference: SignReference[];
+}
+
+export const signMediaUrl = (file: string) => `${apiBase()}/api/sign/media/${file}`;
+
+// The label to show for a term: the learner's language first.
+export function termLabel(t: { labels: Partial<Record<Lang, string>> }, lang: Lang): string {
+  return t.labels[lang] ?? t.labels.en ?? t.labels.bn ?? t.labels.ms ?? "";
+}
+
+export const getLessonSigns = (lessonId: number) => request<LessonSigns>(`/api/sign/lessons/${lessonId}`);
+export const extractLessonTerms = (lessonId: number) => post<LessonSigns>(`/api/sign/lessons/${lessonId}/terms/extract`, {});
+export const addLessonTerm = (lessonId: number, labels: Partial<Record<Lang, string>>) =>
+  post<LessonSigns>(`/api/sign/lessons/${lessonId}/terms`, { labels });
+export const removeLessonTerm = (lessonId: number, termId: number) =>
+  request<void>(`/api/sign/lessons/${lessonId}/terms/${termId}`, { method: "DELETE" });
+export const getSignLexicon = () => request<SignTerm[]>("/api/sign/lexicon");
+export const getMissingSigns = () => request<MissingSign[]>("/api/sign/missing");
+export const listSignVideos = (status: "pending" | "approved" | "rejected" = "pending") =>
+  request<SignVideo[]>(`/api/sign/videos?status=${status}`);
+export const signVideoCount = () => request<{ pending: number }>("/api/sign/videos/count").then((r) => r.pending);
+export const approveSignVideo = (id: number, reviewer: string, note: string) =>
+  post<SignVideo>(`/api/sign/videos/${id}/approve`, { reviewer, note });
+export const rejectSignVideo = (id: number, reviewer: string, note: string) =>
+  post<SignVideo>(`/api/sign/videos/${id}/reject`, { reviewer, note });
+export const withdrawSignVideo = (id: number) => post<SignVideo>(`/api/sign/videos/${id}/withdraw`, {});
+
+export interface SignUpload {
+  kind: "term" | "lesson";
+  termId?: number;
+  lessonId?: number;
+  signer: string;
+  region: string;
+  consent: boolean;
+  video: Blob;
+}
+export function uploadSignVideo(u: SignUpload): Promise<SignVideo> {
+  const form = new FormData();
+  form.set("kind", u.kind);
+  if (u.termId) form.set("term_id", String(u.termId));
+  if (u.lessonId) form.set("lesson_id", String(u.lessonId));
+  form.set("signer", u.signer);
+  form.set("region", u.region);
+  form.set("consent", u.consent ? "yes" : "no");
+  const ext = u.video.type.includes("mp4") ? "mp4" : "webm";
+  form.set("video", u.video, `sign.${ext}`);
+  return upload<SignVideo>("/api/sign/videos", form);
 }

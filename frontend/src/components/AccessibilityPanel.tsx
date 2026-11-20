@@ -109,6 +109,19 @@ export function AccessibilityPanel() {
       />
 
       <Divider />
+      <Typography variant="h5" component="h3">
+        Sign language
+      </Typography>
+      <FormControlLabel
+        control={<Switch checked={settings.signGlossary} onChange={(e) => update({ signGlossary: e.target.checked })} />}
+        label="Show Bangla Sign Language signs for key words"
+      />
+      <FormControlLabel
+        control={<Switch checked={settings.interpreterOn} onChange={(e) => update({ interpreterOn: e.target.checked })} />}
+        label="Show the sign interpreter when there is one"
+      />
+
+      <Divider />
       <Button variant="outlined" onClick={reset}>
         Reset to defaults
       </Button>
