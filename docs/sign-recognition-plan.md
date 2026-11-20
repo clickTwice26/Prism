@@ -239,6 +239,28 @@ samples tabs, then `node scripts/analyze-samples.ts --api http://localhost:8080`
 - **Not done:** the models still load from Google's servers (no offline copy), and the demo has not
   been rehearsed with a deaf signer.
 
+## Phase 4 status (2026-11-20): the whole corpus and community signs
+
+- **Signs shared by several words.** 37% of the corpus's words share an identical sign with another
+  word (e.g. স্কুল and বিদ্যালয়, both "school"); form alone cannot tell them apart. Each distinct
+  sign is now scored once and the result lists every word it can mean ("the same sign also means…").
+- **The whole corpus.** A cheap start-and-end check narrows about 2,900 distinct signs to 120 before
+  full alignment. On synthetic signers: top-1 98% (counting shared signs), top-3 100%, 62 ms per
+  sign instead of 430 ms.
+- **Signs learned from community clips.** When a deaf reviewer approves a key-term clip, the browser
+  tracks it and writes the sign down as a template (`derive.ts`): handshape, starting place,
+  direction, movement and the other hand. It is stored with the term (`sign_derived`, removed if the
+  clip is rejected or withdrawn) and shown to the reviewer in plain words. The same matcher then
+  recognises it, so terms the corpus lacks, such as ক্লোরোফিল (chlorophyll), become recognisable.
+  Learned from one synthetic signer, a sign recognises another 58/61 top-1, 60/61 top-3.
+- **Choosing the vocabulary.** Sign words can recognise the demo words, all documented words
+  (about 3,500, sent gzip-compressed), or one lesson's key terms (documented and learned signs).
+- **Corpus names** with underscores are cleaned ("প্রশ্ন_চিহ্ন" is "প্রশ্ন চিহ্ন"; an appended English
+  gloss becomes the English name).
+
+Still to do: measure all of this on real signers; learned templates come from one clip each, so
+several approved clips per term should be combined.
+
 ## Phases
 
 | Phase | Goal | Done when |

@@ -53,7 +53,8 @@ input, 429 when rate-limited, 503 when AI is not configured, 502 when the AI pro
 | GET | `/sign/lexicon` | → every term with an approved sign, with its clips (regional variants) |
 | GET | `/sign/missing` | → lesson terms with no approved sign, the lessons that need them and any `reference` dictionary entries |
 | GET | `/sign/reference?q=` | → `{size, matches}` from the reference word list |
-| GET | `/sign/templates?section=` · `?words=` | → documented signs broken into parts (handshape, orientation, location, actions) for recognition; a section or words is required. See [sign-recognition-plan.md](sign-recognition-plan.md) |
+| GET | `/sign/templates?section=` · `?words=` · `?all=1` | → documented signs broken into parts (handshape, orientation, location, actions) for recognition; gzip-compressed when accepted. See [sign-recognition-plan.md](sign-recognition-plan.md) |
+| PUT | `/sign/videos/{id}/derived` | `{template}` → 204; the sign template the browser wrote down from an approved key-term clip (removed if the clip is rejected or withdrawn). Terms return these as `derived` |
 | POST | `/sign/samples` | `{kind: letter\|word, label, signer, dominant, deaf, consent: true, frames: [{t, hands: [{side, points: 21×[x,y,z]}], body?: 33×[x,y,z]}], features, feature_version}` → sample; skeleton points only, never video; the label must be a documented letter or word |
 | GET | `/sign/samples?kind=letter[&full=1]` | → samples, with frames and features when `full=1` (for the Python tools) |
 | DELETE | `/sign/samples/{id}` | → 204; the signer withdraws a sample |
