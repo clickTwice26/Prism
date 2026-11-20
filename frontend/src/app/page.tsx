@@ -10,45 +10,31 @@ import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Analytics01Icon, BookOpen01Icon, MagicWand01Icon, SignLanguageCIcon, Video01Icon } from "@hugeicons/core-free-icons";
+import { BookOpen01Icon, SignLanguageCIcon, Video01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
 import { ServerStatus } from "@/features/ServerStatus";
 
 const TOOLS = [
   {
-    href: "/read",
-    title: "Read & images",
-    text: "Hear any lesson read aloud with each word highlighted, and get spoken descriptions of diagrams.",
-    who: ["Blind & low vision", "Dyslexia"],
+    href: "/lessons",
+    title: "Lessons",
+    text: "Read the lesson in Bangla, English or Malay. Key words show their Bangla Sign Language sign, and a recorded interpreter can sign the whole lesson.",
+    who: ["Deaf", "Hard of hearing"],
     icon: BookOpen01Icon,
-  },
-  {
-    href: "/simplify",
-    title: "Simplify",
-    text: "Turn hard text into short, plain sentences, checked for missing facts, with a picture and quick questions.",
-    who: ["Intellectual disability", "Autism", "Slow readers"],
-    icon: MagicWand01Icon,
   },
   {
     href: "/live",
     title: "Live class",
-    text: "Follow the teacher live with captions, a saved transcript, and on-demand descriptions of what is on screen.",
-    who: ["Deaf & hard of hearing", "Blind & low vision"],
+    text: "Follow the teacher live with captions and a saved transcript, with a sign interpreter who can join from anywhere.",
+    who: ["Deaf & hard of hearing", "Sign interpreters"],
     icon: Video01Icon,
   },
   {
     href: "/sign",
     title: "Sign glossary",
-    text: "Each lesson's key words in Bangla Sign Language, plus a sign interpreter window. Signed by people and approved by deaf reviewers.",
-    who: ["Deaf & hard of hearing", "Sign interpreters"],
+    text: "AI finds each lesson's key terms, people record the signs, and deaf reviewers approve every sign before learners see it.",
+    who: ["Teachers", "Sign interpreters", "Deaf reviewers"],
     icon: SignLanguageCIcon,
-  },
-  {
-    href: "/study",
-    title: "Study",
-    text: "Record comprehension with and without Prism, so the impact is measured, not guessed.",
-    who: ["Teachers", "Researchers"],
-    icon: Analytics01Icon,
   },
 ];
 
@@ -56,15 +42,14 @@ export default function Home() {
   return (
     <Stack spacing={6}>
       <Box sx={{ maxWidth: 760 }}>
-        <Typography variant="display">
-          The same lesson, for every learner.
-        </Typography>
+        <Typography variant="display">The same lesson, in Bangla Sign Language.</Typography>
         <Typography variant="lead" color="text.secondary" sx={{ mt: 2, maxWidth: "60ch" }}>
-          Prism takes the class every student sees and gives each child the form they can use: spoken, captioned,
-          described, simplified or signed.
+          Prism Sign gives deaf learners in Bangladesh the class lesson with the key science words signed, captions that
+          stay on, and a sign interpreter they can move, resize or hide. People do the signing. Deaf reviewers approve
+          every sign.
         </Typography>
-        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-          <Button component={Link} href="/read" variant="contained" size="large">
+        <Stack direction="row" spacing={2} useFlexGap sx={{ mt: 3, flexWrap: "wrap" }}>
+          <Button component={Link} href="/lessons" variant="contained" size="large">
             Open a lesson
           </Button>
           <Button component={Link} href="/live" variant="outlined" size="large">
@@ -75,7 +60,7 @@ export default function Home() {
 
       <Grid container spacing={3} component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
         {TOOLS.map((t) => (
-          <Grid key={t.href} size={{ xs: 12, sm: 6 }} component="li">
+          <Grid key={t.href} size={{ xs: 12, md: 4 }} component="li">
             <Card sx={{ height: "100%" }}>
               <CardActionArea component={Link} href={t.href} sx={{ height: "100%", alignItems: "flex-start" }}>
                 <CardContent sx={{ p: 3 }}>

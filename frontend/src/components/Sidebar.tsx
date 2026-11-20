@@ -16,19 +16,15 @@ import { alpha } from "@mui/material/styles";
 import type { IconSvgElement } from "@hugeicons/react";
 import {
   AccessibilityIcon,
-  Analytics01Icon,
   BookOpen01Icon,
   Home01Icon,
-  MagicWand01Icon,
   PrismIcon,
-  SecurityCheckIcon,
   SignLanguageCIcon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
-  Target02Icon,
   Video01Icon,
 } from "@hugeicons/core-free-icons";
-import { reviewCount, signVideoCount } from "@/lib/api";
+import { signVideoCount } from "@/lib/api";
 import { SIGNS_CHANGED } from "@/lib/signs";
 import { Icon } from "./Icon";
 
@@ -44,18 +40,14 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: "Learn",
     items: [
-      { href: "/learn", label: "Adaptive lesson", hint: "Learns what helps you", icon: Target02Icon },
-      { href: "/read", label: "Read & images", hint: "Listen and describe", icon: BookOpen01Icon },
-      { href: "/simplify", label: "Simplify", hint: "Plain words and quiz", icon: MagicWand01Icon },
-      { href: "/live", label: "Live class", hint: "Captions and video", icon: Video01Icon },
+      { href: "/lessons", label: "Lessons", hint: "Text with signs", icon: BookOpen01Icon },
+      { href: "/live", label: "Live class", hint: "Captions and interpreter", icon: Video01Icon },
     ],
   },
   {
     title: "Teach",
     items: [
-      { href: "/review", label: "Review", hint: "Check AI before learners", icon: SecurityCheckIcon },
-      { href: "/sign", label: "Sign glossary", hint: "Bangla Sign Language", icon: SignLanguageCIcon },
-      { href: "/study", label: "Study", hint: "Measure the impact", icon: Analytics01Icon },
+      { href: "/sign", label: "Sign glossary", hint: "Terms, review, lexicon", icon: SignLanguageCIcon },
     ],
   },
 ];
@@ -73,21 +65,9 @@ interface Props {
 // Shared sidebar body for the permanent desktop drawer and the mobile drawer.
 export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggleCollapse }: Props) {
   const pathname = usePathname();
-  const [pending, setPending] = useState(0);
   const [signPending, setSignPending] = useState(0);
 
-  // Show teachers how many AI outputs wait for review.
-  useEffect(() => {
-    const load = () =>
-      reviewCount()
-        .then(setPending)
-        .catch(() => setPending(0));
-    load();
-    window.addEventListener("prism:review-changed", load);
-    return () => window.removeEventListener("prism:review-changed", load);
-  }, [pathname]);
-
-  // And how many recorded signs wait for a deaf reviewer.
+  // Show how many recorded signs wait for a deaf reviewer.
   useEffect(() => {
     const load = () =>
       signVideoCount()
@@ -214,7 +194,7 @@ export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggle
                     label: item.label,
                     hint: item.hint,
                     icon: item.icon,
-                    badge: item.href === "/review" ? pending : item.href === "/sign" ? signPending : undefined,
+                    badge: item.href === "/sign" ? signPending : undefined,
                   },
                   { component: Link, href: item.href, onClick: onNavigate },
                   isActive(pathname, item.href),

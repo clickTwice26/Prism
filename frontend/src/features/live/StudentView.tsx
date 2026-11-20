@@ -11,11 +11,10 @@ import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Logout01Icon, ViewIcon } from "@hugeicons/core-free-icons";
+import { Logout01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
 import { useAnnounce } from "@/components/Announcer";
-import { describeImage, logUsage, translate, wsUrl } from "@/lib/api";
-import { useReadAloud } from "@/lib/useReadAloud";
+import { logUsage, translate, wsUrl } from "@/lib/api";
 import { useSettings } from "@/lib/settings";
 import { InterpreterWindow } from "@/components/InterpreterWindow";
 import { Captions, nowHM, type Line } from "./Transcript";
@@ -28,7 +27,6 @@ type Status = "idle" | "joining" | "joined";
 export function StudentView() {
   const { settings } = useSettings();
   const announce = useAnnounce();
-  const reader = useReadAloud();
   const [room, setRoom] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -37,8 +35,6 @@ export function StudentView() {
   const [videoOn, setVideoOn] = useState(false);
   const [videoUnsupported, setVideoUnsupported] = useState(false);
   const [translateOn, setTranslateOn] = useState(false);
-  const [screenNote, setScreenNote] = useState<string | null>(null);
-  const [describing, setDescribing] = useState(false);
 
   const [signOn, setSignOn] = useState(false);
 
@@ -139,38 +135,6 @@ export function StudentView() {
     wsRef.current = ws;
   };
 
-  // Describe the current video frame for blind and low-vision learners.
-  const describeScreen = async () => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) {
-      setScreenNote("There is no video to describe yet.");
-      return;
-    }
-    const scale = Math.min(1, 1280 / v.videoWidth);
-    const canvas = Object.assign(document.createElement("canvas"), {
-      width: Math.round(v.videoWidth * scale),
-      height: Math.round(v.videoHeight * scale),
-    });
-    canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
-    setDescribing(true);
-    setScreenNote(null);
-    announce("Looking at the screen…");
-    try {
-      const res = await describeImage(canvas.toDataURL("image/jpeg", 0.85), settings.lang, "short");
-      setScreenNote(
-        res.verification === "pending_review"
-          ? `${res.description} (Your teacher is checking some details, so only the parts Prism is sure about are shown.)`
-          : res.description,
-      );
-      void reader.speak(res.description, settings.lang);
-      logUsage("live", "describe_screen", { lang: settings.lang });
-    } catch (e) {
-      setScreenNote((e as Error).message);
-    } finally {
-      setDescribing(false);
-    }
-  };
-
   if (status !== "joined") {
     return (
       <Paper sx={{ p: { xs: 2, md: 4 }, maxWidth: 520 }}>
@@ -215,28 +179,11 @@ export function StudentView() {
               <Alert severity="info">This browser cannot play the class video. Captions still work.</Alert>
             )}
             <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap" }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={describeScreen}
-                disabled={!videoOn || describing}
-                startIcon={<Icon icon={ViewIcon} />}
-              >
-                {describing ? "Looking…" : "What's on screen now?"}
-              </Button>
               <Button variant="outlined" size="large" onClick={leave} startIcon={<Icon icon={Logout01Icon} />}>
                 Leave
               </Button>
             </Stack>
             <InterpreterWindow videoRef={signRef} live streaming={signOn} />
-            {screenNote && (
-              <Alert severity="info" variant="outlined">
-                {screenNote}
-                <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
-                  Written by AI and checked against independent descriptions.
-                </Typography>
-              </Alert>
-            )}
           </Stack>
         </Paper>
       </Grid>

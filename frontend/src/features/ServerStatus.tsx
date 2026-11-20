@@ -19,8 +19,8 @@ export function ServerStatus() {
   if (!health.ai)
     return (
       <Alert severity="warning">
-        AI is not configured on this server. Read-aloud, captions and offline simplification still work; image
-        descriptions, translation, pictures and adaptive lessons need a Gemini API key.
+        AI is not configured on this server. Signs, captions and the interpreter window still work. Finding key terms
+        automatically and translating lessons and captions need a Gemini API key.
       </Alert>
     );
   return null;

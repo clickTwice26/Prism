@@ -9,8 +9,8 @@ export default function LivePage() {
     <>
       <PageHeader
         title="Live class"
-        lead="The teacher shares their camera or slides. Every student gets the video, live captions, a saved transcript, and a spoken description of the screen on request."
-        audience={["Deaf & hard of hearing", "Blind & low vision"]}
+        lead="The teacher shares their camera or slides. Students get the video, live captions and a saved transcript with key words linked to their signs. A Bangla Sign Language interpreter can join from anywhere and sign in a window students can move and resize."
+        audience={["Deaf & hard of hearing", "Sign interpreters"]}
       />
       <LiveClass />
     </>

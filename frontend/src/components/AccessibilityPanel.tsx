@@ -89,25 +89,6 @@ export function AccessibilityPanel() {
         </ToggleButtonGroup>
       </Box>
 
-      <Box>
-        <Typography id="rate-label" gutterBottom>
-          Reading speed: {settings.speechRate.toFixed(1)}×
-        </Typography>
-        <Slider
-          aria-labelledby="rate-label"
-          min={0.5}
-          max={1.5}
-          step={0.1}
-          value={settings.speechRate}
-          onChange={(_, v) => update({ speechRate: v as number })}
-        />
-      </Box>
-
-      <FormControlLabel
-        control={<Switch checked={settings.readAlong} onChange={(e) => update({ readAlong: e.target.checked })} />}
-        label="Highlight each word while reading aloud"
-      />
-
       <Divider />
       <Typography variant="h5" component="h3">
         Sign language

@@ -11,8 +11,6 @@ export interface Settings {
   mode: ColorMode;
   textScale: number; // 1 = 100%
   wordSpacing: number; // extra em between words (Galliussi et al., 2020)
-  readAlong: boolean; // highlight each word while reading aloud
-  speechRate: number;
   sidebarCollapsed: boolean; // desktop sidebar shows icons only
   // Prism Sign: underline key terms that have a Bangla Sign Language sign, and
   // the interpreter window's last state (Boudreault et al., 2024).
@@ -30,8 +28,6 @@ const DEFAULTS: Settings = {
   mode: "light",
   textScale: 1,
   wordSpacing: 0,
-  readAlong: true,
-  speechRate: 1,
   sidebarCollapsed: false,
   signGlossary: true,
   interpreterOn: true,
