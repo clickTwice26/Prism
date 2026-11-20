@@ -8,7 +8,9 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { AiMagicIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
-import { getWordTemplates, signMediaUrl, type SignVideo } from "@/lib/api";
+import { getWordTemplates, saveDerived, signMediaUrl, type SignVideo } from "@/lib/api";
+import { deriveTemplate } from "@/lib/handsign/derive.ts";
+import { describeWord } from "@/lib/handsign/describe.ts";
 import { dirVector, fingerDirection, mean, palmDirection, palmVector, shapeFeatures, shapeScore, dot } from "@/lib/handsign/hand.ts";
 import type { WordTemplate } from "@/lib/handsign/motion.ts";
 import { trackClip } from "@/lib/handsign/mediapipe.ts";
@@ -115,4 +117,24 @@ export function ClipCheck({ video }: { video: SignVideo }) {
       )}
     </Stack>
   );
+}
+
+/**
+ * After a deaf reviewer approves a key-term clip: track it, write the sign
+ * down as a template (handshape, place, direction, movement) and store it, so
+ * Prism can recognise the sign. Returns what Prism learned in plain words, or
+ * null if the hands and body were not clear enough. A description is stored,
+ * not the recording.
+ */
+export async function learnFromClip(video: SignVideo): Promise<string | null> {
+  const word = video.term_labels?.bn ?? video.term_labels?.en ?? video.term_labels?.ms;
+  if (!word) return null;
+  const tracked = await trackClip(signMediaUrl(video.file), { withBody: true });
+  const frames: SignFrame[] = tracked.map((f) => ({ dominant: f.dominant, other: f.other, body: f.body ?? null }));
+  const template = deriveTemplate(frames, { id: `derived/${video.id}`, bn: word });
+  if (!template) return null;
+  await saveDerived(video.id, template);
+  return describeWord(template)
+    .map((d) => `${d.label}: ${d.text}`)
+    .join(" ");
 }

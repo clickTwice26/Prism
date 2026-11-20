@@ -126,6 +126,8 @@ export interface SignTerm {
   labels: Partial<Record<Lang, string>>;
   clips: SignVideo[]; // approved signs; more than one = regional variants
   pending: number;
+  /** Sign templates written down from approved clips, for recognition. */
+  derived?: WordTemplate[];
   source?: "ai" | "teacher";
   lessons?: string[];
 }
@@ -200,6 +202,11 @@ export function uploadSignVideo(u: SignUpload): Promise<SignVideo> {
 // ---- Sign recognition (docs/sign-recognition-plan.md) ----
 
 export const getLetterTemplates = () => request<LetterTemplate[]>("/api/sign/templates?section=Letters");
+/** Every documented sign (several MB, sent compressed). */
+export const getAllTemplates = () => request<(WordTemplate & { section?: string; complete?: boolean })[]>("/api/sign/templates?all=1");
+/** Stores the template written down from an approved key-term clip. */
+export const saveDerived = (videoId: number, template: WordTemplate) =>
+  request<void>(`/api/sign/videos/${videoId}/derived`, { method: "PUT", body: JSON.stringify({ template }) });
 export const getWordTemplates = (words: string[]) =>
   request<WordTemplate[]>(`/api/sign/templates?words=${encodeURIComponent(words.join(","))}`);
 

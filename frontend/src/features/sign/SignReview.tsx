@@ -18,7 +18,7 @@ import { useAnnounce } from "@/components/Announcer";
 import { SignClipPlayer } from "@/components/SignClip";
 import { LANGUAGES, approveSignVideo, listSignVideos, rejectSignVideo, signMediaUrl, type SignVideo } from "@/lib/api";
 import { SIGNS_CHANGED, signsChanged } from "@/lib/signs";
-import { ClipCheck } from "./ClipCheck";
+import { ClipCheck, learnFromClip } from "./ClipCheck";
 
 const REVIEWER_KEY = "prism.sign.reviewer";
 
@@ -101,6 +101,7 @@ function ReviewCard({
 }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [learning, setLearning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const term = video.kind === "term";
   const labels = LANGUAGES.filter((l) => video.term_labels?.[l.code]).map((l) => `${l.label}: ${video.term_labels?.[l.code]}`);
@@ -112,7 +113,18 @@ function ReviewCard({
     try {
       if (approve) {
         await approveSignVideo(video.id, reviewer, note);
-        onDone(video.id, "Approved. Learners will see this sign.");
+        let learned: string | null = null;
+        if (term) {
+          // Teach recognition from the approved clip. Failing here never undoes the approval.
+          setLearning(true);
+          learned = await learnFromClip(video).catch(() => null);
+        }
+        onDone(
+          video.id,
+          learned
+            ? `Approved. Learners will see this sign, and Prism can now recognise it. Prism wrote it down as: ${learned}`
+            : `Approved. Learners will see this sign.${term ? " Prism could not see the hands and body clearly enough to learn to recognise it." : ""}`,
+        );
       } else {
         await rejectSignVideo(video.id, reviewer, note);
         onDone(video.id, "Rejected. The video was deleted.");
@@ -179,7 +191,7 @@ function ReviewCard({
                 disabled={busy || !reviewer}
                 startIcon={<Icon icon={CheckmarkCircle02Icon} />}
               >
-                Approve for learners
+                {learning ? "Approved. Learning the sign…" : "Approve for learners"}
               </Button>
               <Button
                 variant="outlined"
