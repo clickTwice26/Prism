@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/copy-mediapipe.mjs",
+    "predev": "node scripts/copy-assets.mjs",
     "dev": "next dev --port 3100",
-    "prebuild": "node scripts/copy-mediapipe.mjs",
+    "prebuild": "node scripts/copy-assets.mjs",
     "build": "next build",
     "start": "next start --port 3100",
     "lint": "eslint",
@@ -23,7 +23,8 @@
     "@mui/material-nextjs": "^9.5.0",
     "next": "16.4.6",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "xslt-polyfill": "^1.0.37"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

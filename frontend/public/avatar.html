@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>3D sign preview</title>
+    <!--
+      The CWA Signing Avatars (CWASA) player from the Virtual Humans Group,
+      University of East Anglia, offered under CC BY-SA 4.0. It turns a HamNoSys
+      (SiGML) description into 3D signing. Prism hosts it in this frame so each
+      preview starts clean, and talks to it with postMessage (same origin only):
+        parent → frame: { prism: "avatar", play: "<sigml>…" } | { prism: "avatar", stop: true }
+                        | { prism: "avatar", slow: true | false }
+        frame → parent: { prism: "avatar", event: "ready" | "playing" | "idle" | "failed", detail? }
+    -->
+    <link rel="stylesheet" href="https://vhg.cmp.uea.ac.uk/tech/jas/vhg2024/cwa/cwasa.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+      }
+      .CWASAAvatar {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="CWASAAvatar av0"></div>
+    <div hidden>
+      <input type="button" class="bttnSpeedDown av0" />
+      <input type="button" class="bttnSpeedReset av0" />
+    </div>
+    <!-- Chrome removed built-in XSLT, which CWASA uses to read HamNoSys: use the polyfill only where needed. -->
+    <script>
+      window.xsltUsePolyfillOnlyIfNeeded = true;
+      window.xsltDontAutoloadXmlDocs = true;
+    </script>
+    <script src="/vendor/xslt-polyfill.min.js" charset="utf-8"></script>
+    <script>
+      (function () {
+        const AVATARS = ["anna", "marc", "francoise"];
+        const params = new URLSearchParams(location.search);
+        const avatar = AVATARS.includes(params.get("av")) ? params.get("av") : "anna";
+        const tell = (event, detail) => parent.postMessage({ prism: "avatar", event, detail }, location.origin);
+        let ready = false;
+        let queued = null;
+        let slow = false;
+
+        const setSlow = (on) => {
+          if (on === slow) return;
+          slow = on;
+          document.querySelector(".bttnSpeedReset.av0").click();
+          // Each step is 2^(-1/5): five steps halve the speed.
+          if (on) for (let i = 0; i < 5; i++) document.querySelector(".bttnSpeedDown.av0").click();
+        };
+        const play = (sigml) => {
+          if (!ready) {
+            queued = sigml;
+            return;
+          }
+          CWASA.playSiGMLText(sigml, 0);
+        };
+
+        const load = (src) =>
+          new Promise((resolve, reject) => {
+            const el = document.createElement("script");
+            el.src = src;
+            el.onload = resolve;
+            el.onerror = () => reject(new Error("The 3D signer could not be loaded. Check the internet connection."));
+            document.body.appendChild(el);
+          });
+
+        const start = () => {
+          CWASA.addHook("avatarready", () => {
+            ready = true;
+            tell("ready");
+            if (queued) play(queued);
+            queued = null;
+          });
+          CWASA.addHook("animactive", () => tell("playing"));
+          CWASA.addHook("animidle", () => tell("idle"));
+          CWASA.addHook("avatarsign", (e) => tell("sign", e.msg));
+
+          window.addEventListener("message", (e) => {
+            if (e.origin !== location.origin || !e.data || e.data.prism !== "avatar") return;
+            if (typeof e.data.slow === "boolean") setSlow(e.data.slow);
+            if (e.data.stop && ready) CWASA.stopSiGML(0);
+            if (typeof e.data.play === "string") play(e.data.play);
+          });
+
+          return CWASA.init({
+            avs: AVATARS,
+            avSettings: [
+              {
+                width: Math.max(160, innerWidth),
+                height: Math.max(160, innerHeight),
+                avList: "avs",
+                initAv: avatar,
+                // Front on, head to waist: the signing space. [target x, y, distance, turn°, tilt°, field of view°, limits]
+                initCamera: [0, 0.32, 2.4, 0, 8, 30, -1, -1],
+                initSpeed: 0,
+                rateSpeed: 5,
+                allowFrameSteps: false,
+                allowSiGMLText: true,
+              },
+            ],
+          });
+        };
+
+        // The XSLT polyfill must finish loading before CWASA, whose globals upset its WebAssembly start-up.
+        const xsltReady = typeof window.xsltPolyfillReady === "function" ? window.xsltPolyfillReady() : Promise.resolve();
+        xsltReady
+          .then(() => load("https://vhg.cmp.uea.ac.uk/tech/jas/vhg2024/cwa/allcsa.js"))
+          .then(start)
+          .catch((err) => tell("failed", err && err.message ? err.message : String(err)));
+      })();
+    </script>
+  </body>
+</html>

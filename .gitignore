@@ -14,6 +14,7 @@
 /frontend/out/
 /frontend/next-env.d.ts
 /frontend/public/mediapipe/
+/frontend/public/vendor/
 *.tsbuildinfo
 
 # os / editors
