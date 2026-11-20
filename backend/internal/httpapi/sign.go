@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -466,6 +467,7 @@ func (s *Server) decideSignVideo(approve bool) http.HandlerFunc {
 		}
 		if !approve {
 			s.removeMedia(v.File)
+			_ = s.db.DeleteDerived(r.Context(), v.ID)
 		}
 		writeJSON(w, http.StatusOK, v)
 	}
@@ -486,7 +488,39 @@ func (s *Server) withdrawSignVideo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.removeMedia(v.File)
+	_ = s.db.DeleteDerived(r.Context(), v.ID)
 	writeJSON(w, http.StatusOK, v)
+}
+
+// saveDerived stores the sign template the browser wrote down from an
+// approved term clip (frontend/src/lib/handsign/derive.ts), so the sign can
+// be recognised. It is a description of the sign's parts, not a recording.
+func (s *Server) saveDerived(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r, "id")
+	if !ok {
+		return
+	}
+	var in struct {
+		Template json.RawMessage `json:"template"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	var tpl struct {
+		Signs []map[string]any `json:"signs"`
+	}
+	if len(in.Template) > 64<<10 || json.Unmarshal(in.Template, &tpl) != nil || len(tpl.Signs) == 0 || len(tpl.Signs) > 8 {
+		writeError(w, http.StatusUnprocessableEntity, "template must be a sign template with 1-8 signs")
+		return
+	}
+	if err := s.db.SaveDerived(r.Context(), id, in.Template); errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusNotFound, "no approved key-term clip with that id")
+		return
+	} else if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not save the template")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // signMedia serves a stored sign video. Names are random, so files never

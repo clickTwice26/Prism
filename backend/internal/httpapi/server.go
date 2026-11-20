@@ -75,6 +75,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/sign/videos/{id}/approve", s.decideSignVideo(true))
 	mux.HandleFunc("POST /api/sign/videos/{id}/reject", s.decideSignVideo(false))
 	mux.HandleFunc("POST /api/sign/videos/{id}/withdraw", s.withdrawSignVideo)
+	mux.HandleFunc("PUT /api/sign/videos/{id}/derived", s.saveDerived)
 	mux.HandleFunc("GET /api/sign/media/{file}", s.signMedia)
 
 	mux.HandleFunc("GET /ws/class/{room}", s.liveClass)
@@ -91,7 +92,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 			h := w.Header()
 			h.Set("Access-Control-Allow-Origin", origin)
 			h.Set("Vary", "Origin")
-			h.Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			h.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			h.Set("Access-Control-Allow-Headers", "Content-Type")
 		}
 		if r.Method == http.MethodOptions {

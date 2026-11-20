@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -71,6 +72,8 @@ type SignTerm struct {
 	Pending int               `json:"pending"`
 	Source  string            `json:"source,omitempty"`  // lesson terms: ai | teacher
 	Lessons []string          `json:"lessons,omitempty"` // missing signs: where the term is used
+	// Templates written down from this term's approved clips, for recognition.
+	Derived []json.RawMessage `json:"derived,omitempty"`
 }
 
 // UpsertTerm finds the term any of the labels already names, or creates one,
@@ -172,7 +175,27 @@ func (s *Store) fillTerms(ctx context.Context, terms []SignTerm) ([]SignTerm, er
 			t.Pending++
 		}
 	}
-	return terms, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+
+	drows, err := s.Pool.Query(ctx, `SELECT d.term_id, d.template FROM sign_derived d
+		JOIN sign_videos v ON v.id = d.video_id AND v.status = 'approved'
+		WHERE d.term_id = ANY($1) ORDER BY d.created_at`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer drows.Close()
+	for drows.Next() {
+		var id int64
+		var tpl []byte
+		if err := drows.Scan(&id, &tpl); err != nil {
+			return nil, err
+		}
+		terms[at[id]].Derived = append(terms[at[id]].Derived, json.RawMessage(tpl))
+	}
+	return terms, drows.Err()
 }
 
 // LessonTerms lists a lesson's key terms in order.
@@ -322,4 +345,22 @@ func (s *Store) LessonInterpreter(ctx context.Context, lessonID int64) (*SignVid
 		return nil, nil
 	}
 	return &v, err
+}
+
+// SaveDerived stores the template written down from an approved term clip,
+// replacing any earlier one for that clip.
+func (s *Store) SaveDerived(ctx context.Context, videoID int64, template []byte) error {
+	tag, err := s.Pool.Exec(ctx, `INSERT INTO sign_derived(video_id, term_id, template)
+		SELECT id, term_id, $2 FROM sign_videos WHERE id=$1 AND kind='term' AND status='approved'
+		ON CONFLICT (video_id) DO UPDATE SET template = EXCLUDED.template, created_at = now()`, videoID, template)
+	if err == nil && tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return err
+}
+
+// DeleteDerived removes what was learned from a clip (rejected or withdrawn).
+func (s *Store) DeleteDerived(ctx context.Context, videoID int64) error {
+	_, err := s.Pool.Exec(ctx, `DELETE FROM sign_derived WHERE video_id=$1`, videoID)
+	return err
 }
