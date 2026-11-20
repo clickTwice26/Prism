@@ -60,3 +60,31 @@ class TrainLettersTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TrainWordsTest(unittest.TestCase):
+    def test_dtw_tolerates_a_slower_signer(self):
+        from prism_ml.train_words import dtw
+
+        a = np.array([[0.0], [1.0], [2.0], [3.0]] * 1, dtype=float)
+        slow = np.array([[0.0], [0.0], [1.0], [1.0], [2.0], [3.0]], dtype=float)[:4]
+        other = np.array([[3.0], [2.0], [1.0], [0.0]])
+        self.assertLess(dtw(a, slow), dtw(a, other))
+        self.assertEqual(dtw(a, a), 0.0)
+
+    def test_held_out_word_accuracy_on_separable_words(self):
+        from prism_ml.samples import WORD_FEATURE_LENGTH, Sample
+        from prism_ml.train_words import evaluate, sequence
+
+        rng = np.random.default_rng(1)
+        items, i = [], 0
+        for signer in "ABC":
+            for w, base in (("x", 0.0), ("y", 3.0)):
+                f = base + rng.normal(scale=0.2, size=(30, WORD_FEATURE_LENGTH))
+                f[:, 0] = 1
+                s = Sample(id=i, label=w, signer=signer, deaf=False, features=f)
+                items.append((s, sequence(s, 8)))
+                i += 1
+        report = evaluate(items, k=3)
+        self.assertEqual(report["held_out_by"], "signer")
+        self.assertEqual(report["accuracy"], 1.0)

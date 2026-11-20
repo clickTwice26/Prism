@@ -18,5 +18,14 @@ the model never saw (whole signers left out when there are three or more),
 and writes `frontend/public/models/letters.json`. Reload the Fingerspell page
 to use it.
 
+For signed words (the Sign words page):
+
+```bash
+uv run python -m prism_ml.train_words --api http://localhost:8080
+```
+
+This keeps a few prototype recordings per word, reports held-out accuracy and
+writes `frontend/public/models/words.json`.
+
 Only commit a model trained on real, consented recordings, and report its
 held-out accuracy with it.
