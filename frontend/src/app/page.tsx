@@ -10,7 +10,7 @@ import Chip from "@mui/material/Chip";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Analytics01Icon, BookOpen01Icon, MagicWand01Icon, Video01Icon } from "@hugeicons/core-free-icons";
+import { Analytics01Icon, BookOpen01Icon, MagicWand01Icon, SignLanguageCIcon, Video01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
 import { ServerStatus } from "@/features/ServerStatus";
 
@@ -37,6 +37,13 @@ const TOOLS = [
     icon: Video01Icon,
   },
   {
+    href: "/sign",
+    title: "Sign glossary",
+    text: "Each lesson's key words in Bangla Sign Language, plus a sign interpreter window. Signed by people and approved by deaf reviewers.",
+    who: ["Deaf & hard of hearing", "Sign interpreters"],
+    icon: SignLanguageCIcon,
+  },
+  {
     href: "/study",
     title: "Study",
     text: "Record comprehension with and without Prism, so the impact is measured, not guessed.",
@@ -54,7 +61,7 @@ export default function Home() {
         </Typography>
         <Typography variant="lead" color="text.secondary" sx={{ mt: 2, maxWidth: "60ch" }}>
           Prism takes the class every student sees and gives each child the form they can use: spoken, captioned,
-          described or simplified.
+          described, simplified or signed.
         </Typography>
         <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
           <Button component={Link} href="/read" variant="contained" size="large">

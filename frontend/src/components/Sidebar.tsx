@@ -22,12 +22,14 @@ import {
   MagicWand01Icon,
   PrismIcon,
   SecurityCheckIcon,
+  SignLanguageCIcon,
   SidebarLeft01Icon,
   SidebarRight01Icon,
   Target02Icon,
   Video01Icon,
 } from "@hugeicons/core-free-icons";
-import { reviewCount } from "@/lib/api";
+import { reviewCount, signVideoCount } from "@/lib/api";
+import { SIGNS_CHANGED } from "@/lib/signs";
 import { Icon } from "./Icon";
 
 interface NavItem {
@@ -52,6 +54,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Teach",
     items: [
       { href: "/review", label: "Review", hint: "Check AI before learners", icon: SecurityCheckIcon },
+      { href: "/sign", label: "Sign glossary", hint: "Bangla Sign Language", icon: SignLanguageCIcon },
       { href: "/study", label: "Study", hint: "Measure the impact", icon: Analytics01Icon },
     ],
   },
@@ -71,6 +74,7 @@ interface Props {
 export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggleCollapse }: Props) {
   const pathname = usePathname();
   const [pending, setPending] = useState(0);
+  const [signPending, setSignPending] = useState(0);
 
   // Show teachers how many AI outputs wait for review.
   useEffect(() => {
@@ -81,6 +85,17 @@ export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggle
     load();
     window.addEventListener("prism:review-changed", load);
     return () => window.removeEventListener("prism:review-changed", load);
+  }, [pathname]);
+
+  // And how many recorded signs wait for a deaf reviewer.
+  useEffect(() => {
+    const load = () =>
+      signVideoCount()
+        .then(setSignPending)
+        .catch(() => setSignPending(0));
+    load();
+    window.addEventListener(SIGNS_CHANGED, load);
+    return () => window.removeEventListener(SIGNS_CHANGED, load);
   }, [pathname]);
 
   const row = (
@@ -199,7 +214,7 @@ export function SidebarContent({ collapsed, onNavigate, onOpenSettings, onToggle
                     label: item.label,
                     hint: item.hint,
                     icon: item.icon,
-                    badge: item.href === "/review" ? pending : undefined,
+                    badge: item.href === "/review" ? pending : item.href === "/sign" ? signPending : undefined,
                   },
                   { component: Link, href: item.href, onClick: onNavigate },
                   isActive(pathname, item.href),
