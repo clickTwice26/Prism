@@ -17,7 +17,11 @@ import { useAnnounce } from "@/components/Announcer";
 import { describeImage, logUsage, translate, wsUrl } from "@/lib/api";
 import { useReadAloud } from "@/lib/useReadAloud";
 import { useSettings } from "@/lib/settings";
+import { InterpreterWindow } from "@/components/InterpreterWindow";
 import { Captions, nowHM, type Line } from "./Transcript";
+import { MsePlayer, splitFrame } from "./msePlayer";
+
+type Stream = "class" | "sign";
 
 type Status = "idle" | "joining" | "joined";
 
@@ -36,11 +40,13 @@ export function StudentView() {
   const [screenNote, setScreenNote] = useState<string | null>(null);
   const [describing, setDescribing] = useState(false);
 
+  const [signOn, setSignOn] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const msRef = useRef<MediaSource | null>(null);
-  const sbRef = useRef<SourceBuffer | null>(null);
-  const queueRef = useRef<ArrayBuffer[]>([]);
+  const signRef = useRef<HTMLVideoElement>(null);
+  const [classPlayer] = useState(() => new MsePlayer(videoRef));
+  const [signPlayer] = useState(() => new MsePlayer(signRef));
   const lineId = useRef(0);
   const translateRef = useRef(translateOn);
   const langRef = useRef(settings.lang);
@@ -50,71 +56,26 @@ export function StudentView() {
     langRef.current = settings.lang;
   }, [translateOn, settings.lang]);
 
-  // ---- video via Media Source Extensions ----
-  const flush = useCallback(() => {
-    const sb = sbRef.current;
-    if (!sb || sb.updating) return;
-    const next = queueRef.current.shift();
-    if (!next) return;
-    try {
-      sb.appendBuffer(next);
-      // Stay close to live: jump ahead if playback falls behind.
-      const v = videoRef.current;
-      if (v && v.buffered.length && v.buffered.end(v.buffered.length - 1) - v.currentTime > 3) {
-        v.currentTime = v.buffered.end(v.buffered.length - 1) - 0.5;
-      }
-    } catch {
-      /* drop a bad chunk and continue */
+  // ---- video: the class stream and the sign interpreter stream ----
+  const stopVideo = useCallback((stream: Stream) => {
+    if (stream === "sign") {
+      signPlayer.stop();
+      setSignOn(false);
+    } else {
+      classPlayer.stop();
+      setVideoOn(false);
     }
-  }, []);
+  }, [classPlayer, signPlayer]);
 
-  const stopVideo = useCallback(() => {
-    queueRef.current = [];
-    sbRef.current = null;
-    const ms = msRef.current;
-    msRef.current = null;
-    try {
-      if (ms?.readyState === "open") ms.endOfStream();
-    } catch {
-      /* ignore */
+  const startVideo = useCallback((stream: Stream, mime: string) => {
+    const player = stream === "sign" ? signPlayer : classPlayer;
+    if (!player.start(mime)) {
+      setVideoUnsupported(true);
+      return;
     }
-    const v = videoRef.current;
-    if (v) {
-      v.removeAttribute("src");
-      v.load();
-    }
-    setVideoOn(false);
-  }, []);
-
-  const startVideo = useCallback(
-    (mime: string) => {
-      stopVideo();
-      if (typeof MediaSource === "undefined" || !MediaSource.isTypeSupported(mime)) {
-        setVideoUnsupported(true);
-        return;
-      }
-      const ms = new MediaSource();
-      msRef.current = ms;
-      const v = videoRef.current;
-      if (v) {
-        v.src = URL.createObjectURL(ms);
-        void v.play().catch(() => undefined);
-      }
-      ms.addEventListener(
-        "sourceopen",
-        () => {
-          const sb = ms.addSourceBuffer(mime);
-          sb.mode = "sequence";
-          sb.addEventListener("updateend", flush);
-          sbRef.current = sb;
-          flush();
-        },
-        { once: true },
-      );
-      setVideoOn(true);
-    },
-    [flush, stopVideo],
-  );
+    if (stream === "sign") setSignOn(true);
+    else setVideoOn(true);
+  }, [classPlayer, signPlayer]);
 
   const addFinal = useCallback(async (text: string) => {
     const id = ++lineId.current;
@@ -136,7 +97,8 @@ export function StudentView() {
       ws.onclose = null;
       ws.close();
     }
-    stopVideo();
+    stopVideo("class");
+    stopVideo("sign");
     setStatus("idle");
   }, [stopVideo]);
 
@@ -156,17 +118,18 @@ export function StudentView() {
     };
     ws.onmessage = (e) => {
       if (e.data instanceof ArrayBuffer) {
-        queueRef.current.push(e.data);
-        flush();
+        const { stream, chunk } = splitFrame(e.data);
+        (stream === "sign" ? signPlayer : classPlayer).push(chunk);
         return;
       }
-      const m = JSON.parse(e.data as string) as { type: string; final?: boolean; text?: string; mime?: string };
+      const m = JSON.parse(e.data as string) as { type: string; final?: boolean; text?: string; mime?: string; stream?: Stream };
+      const stream: Stream = m.stream === "sign" ? "sign" : "class";
       if (m.type === "caption" && m.text) {
         if (m.final) void addFinal(m.text);
         else setInterim(m.text);
       } else if (m.type === "clear") setInterim("");
-      else if (m.type === "video_start" && m.mime) startVideo(m.mime);
-      else if (m.type === "video_stop") stopVideo();
+      else if (m.type === "video_start" && m.mime) startVideo(stream, m.mime);
+      else if (m.type === "video_stop") stopVideo(stream);
     };
     ws.onerror = () => announce("Could not join. Check the class code and try again.");
     ws.onclose = () => {
@@ -265,6 +228,7 @@ export function StudentView() {
                 Leave
               </Button>
             </Stack>
+            <InterpreterWindow videoRef={signRef} live streaming={signOn} />
             {screenNote && (
               <Alert severity="info" variant="outlined">
                 {screenNote}

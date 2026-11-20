@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Download04Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
+import { SignableText } from "@/components/ReadableText";
 import { useSettings } from "@/lib/settings";
 
 export interface Line {
@@ -73,7 +74,7 @@ export function Captions({ interim, lines, room }: { interim: string; lines: Lin
             <Box component="span" sx={{ color: "text.secondary", mr: 1, fontVariantNumeric: "tabular-nums" }}>
               {l.time}
             </Box>
-            {l.translated ?? l.text}
+            <SignableText text={l.translated ?? l.text} lang={l.translated ? settings.lang : undefined} />
           </Typography>
         ))}
       </Box>

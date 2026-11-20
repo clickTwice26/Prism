@@ -28,6 +28,7 @@ export function TeacherView() {
   const [source, setSource] = useState<Source>("camera");
   const [live, setLive] = useState(false);
   const [students, setStudents] = useState<string[]>([]);
+  const [interpreter, setInterpreter] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [interim, setInterim] = useState("");
   const [warning, setWarning] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export function TeacherView() {
     setLive(false);
     setInterim("");
     setStudents([]);
+    setInterpreter(false);
   }, []);
 
   useEffect(() => stop, [stop]);
@@ -85,8 +87,11 @@ export function TeacherView() {
       ws.onerror = () => reject(new Error("socket"));
       ws.onmessage = (e) => {
         if (typeof e.data !== "string") return;
-        const m = JSON.parse(e.data) as { type: string; students?: string[] };
-        if (m.type === "roster") setStudents(m.students ?? []);
+        const m = JSON.parse(e.data) as { type: string; students?: string[]; interpreter?: boolean };
+        if (m.type === "roster") {
+          setStudents(m.students ?? []);
+          setInterpreter(!!m.interpreter);
+        }
       };
       ws.onclose = () => {
         if (liveRef.current) {
@@ -204,7 +209,18 @@ export function TeacherView() {
                 </Button>
               )}
             </Stack>
-            <Typography color="text.secondary">Students enter this code on the Live class page to join.</Typography>
+            <Typography color="text.secondary">
+              Students enter this code on the Live class page to join. A sign interpreter can join with it too, from
+              anywhere.
+            </Typography>
+            {live && (
+              <Chip
+                sx={{ alignSelf: "flex-start" }}
+                color={interpreter ? "success" : "default"}
+                variant={interpreter ? "filled" : "outlined"}
+                label={interpreter ? "Sign interpreter connected" : "No sign interpreter yet"}
+              />
+            )}
 
             {!live && (
               <Box>
