@@ -1,6 +1,6 @@
 # Prism design guide: type and layout
 
-Prism is used by children with low vision, dyslexia and intellectual disability. Type is the main
+Prism is used by deaf children, many of whom read Bangla as a second language. Type is the main
 way they reach a lesson, so these rules lean towards larger text, generous line height and few
 variations. The source of truth is `frontend/src/lib/theme.ts`; this page explains how to use it.
 
@@ -33,10 +33,10 @@ sizes in `px`.
 | `h2` | 28px | 700 | 1.2 | Rare: large section on a long page |
 | `h3` | 24px | 650 | 1.25 | Rare: grouped sections |
 | `h4` | 20px | 650 | 1.3 | **Panel and card titles** |
-| `h5` | 18px | 600 | 1.35 | Sub-sections inside a panel, quiz questions |
+| `h5` | 18px | 600 | 1.35 | Sub-sections inside a panel, sign terms |
 | `h6` | 16px | 600 | 1.4 | Small labels that need weight |
 | `lead` | 19px | 400 | 1.6 | The intro sentence under a page title |
-| `reading` | 20px | 400 | 1.8 | **Lesson text learners read**, simplified text, image descriptions |
+| `reading` | 20px | 400 | 1.8 | **Lesson text learners read** |
 | `liveCaption` | 26px | 500 | 1.45 | Captions over live video |
 | `subtitle1` | 16px | 600 | 1.5 | Sidebar item labels |
 | `body1` | 16px | 400 | 1.6 | Default UI text |
@@ -73,11 +73,11 @@ sizes in `px`.
 │              │  Lead sentence                           │
 │ Home         │  [audience chips]                        │
 │ LEARN        │                                          │
-│ Read & images│  ┌ Panel ─────────────────────────────┐  │
-│ Simplify     │  │ Panel title (h4 as h2)             │  │
-│ Live class   │  │ …                                  │  │
-│ TEACH        │  └────────────────────────────────────┘  │
-│ Study        │                                          │
+│ Lessons      │  ┌ Panel ─────────────────────────────┐  │
+│ Live class   │  │ Panel title (h4 as h2)             │  │
+│ TEACH        │  │ …                                  │  │
+│ Sign glossary│  └────────────────────────────────────┘  │
+│              │                                          │
 │ ──────────── │                                          │
 │ Reading set. │                                          │
 │ Collapse     │                                          │

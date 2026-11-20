@@ -1,20 +1,18 @@
 # Prism — notes for Claude
 
-Prism gives every learner the same class lesson in the form they can use: read aloud, captioned,
-described or simplified. It serves blind, deaf, dyslexic, autistic and other learners with special
-needs, in Bangla, English and Malay.
-
-The old `InclusionAI-Backend` (FastAPI) and `inclusionAI-frontend` folders next to this repo are
-reference only. Do not copy code from them; write fresh code here.
+Prism Sign gives deaf learners in Bangladesh the class lesson in Bangla Sign Language (BdSL): signed
+key terms, captions and a sign interpreter window, in Bangla, English and Malay. The scope is set by
+`docs/sign-language-plan.md`; features outside that plan were removed, so do not add them back
+without being asked.
 
 ## Layout
 
 - `backend/`: Go API. `cmd/api` is the entrypoint; `internal/` holds `config`, `store` (Postgres +
-  embedded SQL migrations), `cache` (Redis cache and rate limit), `ai` (prompts plus Gemini and OpenAI backends), `textkit`
-  (offline simplifier, reading level), `tts` (Piper), `live` (class relay over Redis pub/sub),
-  `signref` (BdSL reference word list) and `httpapi` (routes, handlers, middleware).
+  embedded SQL migrations), `cache` (Redis cache and rate limit), `ai` (key terms and translation on Gemini or OpenAI), `live`
+  (class relay over Redis pub/sub, with an interpreter stream), `signref` (BdSL reference word list)
+  and `httpapi` (routes, handlers, middleware, sign uploads and media).
 - `frontend/`: Next.js 16 App Router. `src/app` holds routes, `src/features/<area>` the screens,
-  `src/components` shared UI, `src/lib` the API client, settings, theme and read-aloud hook.
+  `src/components` shared UI, `src/lib` the API client, settings, theme and the shared sign lexicon.
 - `docs/`: architecture and API notes. Keep them in step with the code. Sign language work follows
   `docs/sign-language-plan.md`: people sign and deaf reviewers approve. Never add AI signing avatars
   or generated signs.

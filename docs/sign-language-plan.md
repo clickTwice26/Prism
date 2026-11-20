@@ -4,15 +4,14 @@ As of 2026-11-19. Shared, editable version: [Prism Sign project plan](https://cl
 
 ## Build status
 
-Phase 1 is built in Prism (see [architecture.md](architecture.md#prism-sign-bangla-sign-language-n5)):
+Phase 1 is built in Prism (see [architecture.md](architecture.md#prism-sign)). Prism now contains only this plan's features:
 
-- **Sign glossary:** AI or teachers set each lesson's key terms, in English, Bangla and Malay. Approved clips are linked in lesson text, simplified text, adaptive lessons and live transcripts.
+- **Sign glossary:** teachers add lessons; AI or teachers set each lesson's key terms in English, Bangla and Malay. Approved clips are linked in lesson text and in live captions and transcripts.
 - **Interpreter window:** recorded interpreter videos per lesson, and a live **interpreter** role in the live class. Learners can switch the window on and off, resize it and move it, and the choice is remembered. Captions stay on.
 - **Community lexicon:** the Sign glossary page has lesson terms, a deaf review queue (named reviewers, approve or reject), missing signs and the lexicon. Signers name themselves, consent per clip and can withdraw a clip. Regional variants are kept side by side.
-- **Adaptive layer:** for deaf and hard-of-hearing learners, sign is a support the adaptive lesson measures per child.
 - **Existing signs first:** missing-sign requests show when the IsharaKotha word list already documents the word. Only its word list is read; its avatar animations are not used.
 
-Phase 0 work (partners, licences, interpreter rates, pilot schools) is still open, and there are no real signed clips yet.
+Not built yet: **sign as an adaptive layer** (part 4 below). Prism's adaptive lessons, simplified text and study dashboard were removed to keep Prism to this plan, so part 4 and the per-child comprehension comparison need to be rebuilt for the Phase 2 pilot. Phase 0 work (partners, licences, interpreter rates, pilot schools) is still open, and there are no real signed clips yet.
 
 ## Summary
 
@@ -57,12 +56,12 @@ Sign and captions work best together, controlled by the learner, made by people.
 
 ## Solution
 
-**Prism Sign adds four parts to Prism.** It reuses Prism's live class, captions, fidelity gate and adaptive lessons.
+**Prism Sign has four parts.** It builds on Prism's live class and captions, and applies the idea of Prism's fidelity gate (nothing reaches learners unchecked) to sign.
 
 ### 1. Lesson sign glossary (launch feature)
 
 - When a teacher adds a lesson, AI lists its 5–10 key terms (for example "chlorophyll", "evaporation").
-- Every term with an approved sign is underlined wherever it appears: lesson text, simplified text, captions and transcript. Tapping it plays a 2–4 second looping clip.
+- Every term with an approved sign is underlined wherever it appears: lesson text, captions and transcript. Tapping it plays a 2–4 second looping clip.
 - Clips are short and silent, so they work on phones and weak connections.
 
 ### 2. Interpreter window
@@ -78,9 +77,9 @@ Sign and captions work best together, controlled by the learner, made by people.
 - Approved signs go into a shared lexicon that every lesson reuses. Regional variants are stored side by side, never overwritten.
 - Signers give consent for each clip, and the licence is set with the deaf partners before launch.
 
-### 4. Sign as an adaptive layer
+### 4. Sign as an adaptive layer (not built yet)
 
-- For deaf and hard-of-hearing learners, **sign glossary** and **interpreter** join the supports Prism's adaptive lessons (N1) can choose.
+- For deaf and hard-of-hearing learners, **sign glossary** and **interpreter** become supports an adaptive lesson can choose, one short part at a time with a comprehension question.
 - Prism then measures whether sign raises each child's comprehension, instead of assuming it does.
 
 ### Not in scope

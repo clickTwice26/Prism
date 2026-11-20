@@ -1,37 +1,33 @@
-# Prism
+# Prism Sign
 
-**The same lesson, for every learner.** Prism takes the class every student sees and gives each
-child the form they can use. Blind learners hear it and get diagrams described. Deaf learners get
-live captions, a transcript and the lesson's key words in Bangla Sign Language. Learners with dyslexia read along as each word is highlighted.
-Learners with intellectual disability or autism get a fact-checked simple version, a picture and
-quick questions.
+**The same lesson, in Bangla Sign Language.** Prism Sign gives deaf learners in Bangladesh the class
+lesson with its key science words signed, captions that stay on, and a sign interpreter they can
+move, resize or hide. AI does the routine work: finding each lesson's key terms and translating.
+People do the signing, and deaf reviewers approve every sign before learners see it. It does not
+use AI signing avatars.
 
-Built for the International AI Builders Congress 2026, LearnSphere AI → AI Teacher track.
+Built for the International AI Builders Congress 2026, LearnSphere AI → AI Teacher track. The plan,
+research and roadmap are in [docs/sign-language-plan.md](docs/sign-language-plan.md).
 
 ## What it does
 
 | Area | For | Features |
 | --- | --- | --- |
-| Adaptive lesson | Every learner | One short part at a time with a question; Prism keeps the supports (simple text, read-aloud, picture, sign) that help *this* learner, measured by their answers |
-| Read & images | Blind, low vision, dyslexia | Read-aloud in Bangla, English and Malay with word highlighting; AI image descriptions at short or detailed length |
-| Simplify | Intellectual disability, autism, slow readers | Plain-language rewrite, automatic fact check against the original, side-by-side view for an adult, picture, comprehension quiz |
-| Live class | Deaf, hard of hearing, blind | Teacher camera or screen with live captions, translatable transcript, "What's on screen now?" description, and a remote sign interpreter in a window learners can move and resize |
-| Sign glossary | Deaf, hard of hearing; interpreters and deaf reviewers | Each lesson's key terms in Bangla Sign Language: AI finds the terms, people record 2-4 s clips, deaf reviewers approve every sign, and approved signs are linked wherever the word appears. Interpreter videos for whole lessons, and a missing-sign list for the community |
-| Review | Teachers | AI outputs that failed the automatic fact and agreement checks wait here; learners see only the safe version until a teacher approves |
-| Study | Teachers, researchers | Same task with and without Prism; compares comprehension, completion, time, SUS and satisfaction |
+| Lessons | Deaf and hard-of-hearing learners | The lesson in Bangla, English or Malay. Key terms with an approved sign are underlined; tapping one plays a 2-4 s silent, looping clip. A recorded interpreter can sign the whole lesson in a window learners can move, resize or hide |
+| Live class | Deaf and hard-of-hearing learners, sign interpreters | Teacher camera or screen with live captions and a translatable transcript whose key terms link to their signs. A Bangla Sign Language interpreter can join from anywhere and sign as a second video |
+| Sign glossary | Teachers, sign interpreters, deaf reviewers | Add lessons and find their key terms (AI or by hand), record or upload signs with the signer's consent, a deaf review queue, a missing-sign list for the community, and the lexicon with regional variants |
 
 The research behind these choices is in [docs/architecture.md](docs/architecture.md#research-behind-the-features).
-The plan for Bangla Sign Language support (Prism Sign) is in [docs/sign-language-plan.md](docs/sign-language-plan.md).
 
 ## Stack
 
 - **Frontend:** Next.js 16.4 (App Router, Turbopack), React 19.3, MUI 9.5, Hugeicons, Onest font,
   TypeScript 7
 - **Backend:** Go 1.27, PostgreSQL 18, Redis 8
-- **AI:** Google Gemini by default (`gemini-4-hydrogen` for text and vision, Nano Banana 2 Lite for
-  pictures, Gemini 3.8 Flash-Lite TTS for Bangla, English and Malay speech). Set `AI_PROVIDER=openai`
-  to use OpenAI instead. Piper is
-  optional for offline read-aloud.
+- **AI:** Google Gemini by default (`gemini-4-hydrogen`) for key-term extraction and translation.
+  Set `AI_PROVIDER=openai` to use OpenAI instead.
+- **Sign videos:** stored on disk (`SIGN_MEDIA_DIR`). An optional IsharaKotha corpus
+  (`SIGN_REFERENCE_DIR`) supplies a word list of existing Bangla Sign Language signs.
 
 ## Quick start
 
@@ -55,8 +51,8 @@ cd frontend && npm install && npm run dev
 
 Open http://localhost:3100. The API runs on http://localhost:8080; check it at `/api/health`.
 
-Without an AI key the app still runs. Read-aloud uses the browser voice, captions and the study
-work, and Simplify falls back to offline English rules.
+Without an AI key the app still runs: signs, captions, the interpreter window and deaf review all
+work. Teachers add key terms by hand, and lessons and captions stay in their original language.
 
 To run everything in containers instead:
 
@@ -69,7 +65,7 @@ docker compose --profile app up --build
 ```
 backend/    Go API: REST + live-class WebSocket
 frontend/   Next.js web app
-docs/       Architecture, API, design guide, sign language plan and research notes
+docs/       Sign language plan, architecture and API, design guide
 CLAUDE.md   Working rules for AI-assisted development
 ```
 
