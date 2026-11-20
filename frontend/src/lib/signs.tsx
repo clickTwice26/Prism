@@ -46,13 +46,16 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // Where each signed term appears in a text. English and Malay match whole
 // words (plus a plural ending); Bangla also matches with case endings, as in
 // ক্লোরোফিলের. Longer terms win where matches overlap.
+// Match positions refer to the NFC form of the text (see SignableText).
 export function findSignTerms(text: string, lang: string | undefined, terms: SignTerm[]): TermMatch[] {
   if (!text || terms.length === 0) return [];
+  text = text.normalize("NFC");
   const found: TermMatch[] = [];
   for (const term of terms) {
     const labels = lang && term.labels[lang as Lang] ? [term.labels[lang as Lang]!] : Object.values(term.labels);
-    for (const label of labels) {
+    for (let label of labels) {
       if (!label) continue;
+      label = label.normalize("NFC");
       const bangla = /[ঀ-৿]/.test(label);
       const tail = bangla ? "[\\p{L}\\p{M}]*" : "(?:e?s)?(?![\\p{L}\\p{M}])";
       const re = new RegExp(`(?<![\\p{L}\\p{M}])${escape(label).replace(/\s+/g, "\\s+")}${tail}`, "giu");

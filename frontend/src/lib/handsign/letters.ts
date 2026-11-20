@@ -9,6 +9,7 @@ import {
   dist,
   dot,
   fingerDirection,
+  palmVector,
   handSize,
   palmDirection,
   shapeFeatures,
@@ -54,17 +55,16 @@ export interface LetterScore {
   parts: Record<PartName, number>;
 }
 
-/** 0 to 1: how closely an observed direction matches a HamNoSys direction code. */
-function directionScore(observed: [number, number, number], code: string | undefined): number {
-  const want = code ? dirVector(code) : null;
+/** 0 to 1: how closely an observed direction matches a wanted direction (null: not written). */
+function directionScore(observed: [number, number, number], want: [number, number, number] | null): number {
   if (!want) return 0.5;
   const c = dot(observed, want); // -1 … 1
   return Math.max(0, c) ** 2; // 45° off scores 0.5, 90° scores 0
 }
 
 function orientation(h: HandPoints, side: "right" | "left", p: PoseTemplate): number {
-  const ext = directionScore(fingerDirection(h), p.ext);
-  const palm = directionScore(palmDirection(h, side), p.palm);
+  const ext = directionScore(fingerDirection(h), p.ext ? dirVector(p.ext) : null);
+  const palm = directionScore(palmDirection(h, side), palmVector(p.ext, p.palm));
   return Math.sqrt(ext * palm);
 }
 

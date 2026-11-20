@@ -9,8 +9,10 @@ import { SignWord } from "./SignClip";
 
 // Text with its signed key terms linked to their Bangla Sign Language clips.
 // signs overrides the learner's "show signs" setting.
-export function SignableText({ text, lang, signs }: { text: string; lang?: string; signs?: boolean }) {
+export function SignableText({ text: raw, lang, signs }: { text: string; lang?: string; signs?: boolean }) {
   const { settings } = useSettings();
+  // One Unicode form, so Bangla written either way matches the sign labels.
+  const text = raw.normalize("NFC");
   const { terms } = useSignLexicon();
   const on = signs ?? settings.signGlossary;
   const matches = on ? findSignTerms(text, lang, terms) : [];

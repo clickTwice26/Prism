@@ -12,6 +12,7 @@ import {
   cross,
   dirVector,
   dot,
+  palmVector,
   mean,
   scale,
   sub,
@@ -65,7 +66,7 @@ const rad = (d: number) => (d * Math.PI) / 180;
 /** Orthonormal hand axes from HamNoSys finger and palm directions. */
 function axes(p: PoseTemplate, side: "right" | "left"): { F: Vec; N: Vec; T: Vec } {
   const F = dirVector(p.ext ?? "u") ?? [0, 1, 0];
-  let N = dirVector(p.palm ?? "o") ?? [0, 0, 1];
+  let N = palmVector(p.ext ?? "u", p.palm ?? "d") ?? [0, 0, 1];
   N = sub(N, scale(F, dot(N, F))); // make the palm direction perpendicular to the fingers
   if (Math.hypot(...N) < 1e-6) N = Math.abs(F[2]) < 0.9 ? [0, 0, 1] : [0, 1, 0];
   N = unit(sub(N, scale(F, dot(N, F))));

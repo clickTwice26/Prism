@@ -70,6 +70,32 @@ export function dirVector(code: string): Vec | null {
   return norm(v) > 0 ? unit(v) : null;
 }
 
+/**
+ * The direction a HamNoSys palm code means, in the signer's frame. HamNoSys
+ * writes palm orientation relative to the finger direction: the eight palm
+ * codes (u, d, l, r and their combinations) describe the palm as if the
+ * fingers pointed forward, away from the body. So the code is rotated by the
+ * turn that takes "forward" to the actual finger direction. For example,
+ * fingers left with palm code "l" is a palm facing the signer (a hand laid on
+ * the forehead, as in জ্বর, fever).
+ */
+export function palmVector(extCode: string | undefined, palmCode: string | undefined): Vec | null {
+  const p = palmCode ? dirVector(palmCode) : null;
+  if (!p) return null;
+  const e = extCode ? dirVector(extCode) : null;
+  if (!e) return p;
+  const forward: Vec = [0, 0, 1];
+  const c = dot(forward, e);
+  if (c > 0.9999) return p;
+  if (c < -0.9999) return [-p[0], p[1], -p[2]]; // fingers toward the body: half a turn about the vertical
+  // Rodrigues' rotation of p about forward × e by the angle between them.
+  const k = unit(cross(forward, e));
+  const s = Math.sqrt(1 - c * c);
+  const kxp = cross(k, p);
+  const kdp = dot(k, p);
+  return unit(add(add(scale(p, c), scale(kxp, s)), scale(k, kdp * (1 - c))));
+}
+
 /** Direction the fingers point (wrist → middle-finger base), as for HamNoSys "extended finger direction". */
 export const fingerDirection = (h: HandPoints): Vec => unit(sub(h[FINGERS.middle[0]], h[WRIST]));
 
