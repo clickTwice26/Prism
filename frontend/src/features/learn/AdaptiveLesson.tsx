@@ -23,12 +23,14 @@ import {
   ArrowRight01Icon,
   Image01Icon,
   PlayIcon,
+  SignLanguageCIcon,
   StopIcon,
   TextIcon,
   UserAdd01Icon,
   VolumeHighIcon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
+import { InterpreterWindow } from "@/components/InterpreterWindow";
 import { ReadableText } from "@/components/ReadableText";
 import { VerificationNote } from "@/components/VerificationNote";
 import { useAnnounce } from "@/components/Announcer";
@@ -43,6 +45,7 @@ import {
   logUsage,
   nextChunk,
   profileLabel,
+  signMediaUrl,
   type AnswerResult,
   type ChunkView,
   type Lang,
@@ -351,6 +354,7 @@ export function AdaptiveLesson() {
             <Chip icon={<Icon icon={TextIcon} size={16} />} label={view.mix.simple ? "Simple text" : "Original text"} />
             {view.mix.audio && <Chip icon={<Icon icon={VolumeHighIcon} size={16} />} label="Read aloud" />}
             {view.mix.picture && <Chip icon={<Icon icon={Image01Icon} size={16} />} label="Picture" />}
+            {view.mix.sign && <Chip icon={<Icon icon={SignLanguageCIcon} size={16} />} label="Sign" />}
             <Typography variant="caption" color="text.secondary">
               Prism chose this: {view.reason}
             </Typography>
@@ -358,7 +362,18 @@ export function AdaptiveLesson() {
 
           {view.mix.simple && <VerificationNote verification={view.verification} kind="simplify" />}
 
-          <ReadableText text={view.text} lang={view.lang} word={reader.word} />
+          <ReadableText text={view.text} lang={view.lang} word={reader.word} signs={view.mix.sign} />
+
+          {view.mix.sign && view.signs.length > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              Tap an underlined word to see it in Bangla Sign Language.
+            </Typography>
+          )}
+          {view.mix.sign && view.interpreter && (
+            <Box>
+              <InterpreterWindow src={signMediaUrl(view.interpreter.file)} signer={view.interpreter.signer} />
+            </Box>
+          )}
 
           {view.mix.audio && (
             <Box>

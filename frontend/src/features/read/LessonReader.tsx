@@ -13,9 +13,10 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { LanguageSkillIcon, PauseIcon, PlayIcon, StopIcon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
+import { InterpreterWindow } from "@/components/InterpreterWindow";
 import { ReadableText } from "@/components/ReadableText";
 import { useAnnounce } from "@/components/Announcer";
-import { listLessons, logUsage, translate, type Lesson } from "@/lib/api";
+import { getLessonSigns, listLessons, logUsage, signMediaUrl, translate, type Lesson, type SignVideo } from "@/lib/api";
 import { useReadAloud } from "@/lib/useReadAloud";
 import { useSettings } from "@/lib/settings";
 
@@ -29,6 +30,19 @@ export function LessonReader() {
   const [shown, setShown] = useState<{ text: string; lang: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [interpreter, setInterpreter] = useState<SignVideo | null>(null);
+
+  // A recorded sign interpreter for the chosen lesson, if one is approved.
+  useEffect(() => {
+    if (lessonId === "custom") return;
+    let live = true;
+    getLessonSigns(lessonId)
+      .then((s) => live && setInterpreter(s.interpreter))
+      .catch(() => live && setInterpreter(null));
+    return () => {
+      live = false;
+    };
+  }, [lessonId]);
 
   useEffect(() => {
     listLessons()
@@ -45,6 +59,7 @@ export function LessonReader() {
   const pickLesson = (id: number | "custom") => {
     reader.stop();
     setShown(null);
+    setInterpreter(null);
     setLessonId(id);
     setText(id === "custom" ? "" : (lessons.find((l) => l.id === id)?.body ?? ""));
   };
@@ -132,6 +147,10 @@ export function LessonReader() {
             </>
           )}
         </Stack>
+
+        {interpreter && lessonId !== "custom" && (
+          <InterpreterWindow src={signMediaUrl(interpreter.file)} signer={interpreter.signer} />
+        )}
 
         {error && <Alert severity="warning">{error}</Alert>}
 
