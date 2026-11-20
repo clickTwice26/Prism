@@ -142,6 +142,8 @@ recordings compared by dynamic time warping) and writes `frontend/public/models/
 | `src/lib/settings.tsx` | Per-learner settings in `localStorage`: language, colours (light, dark, high contrast), text size, word spacing, sign glossary, interpreter window (on, size, corner) |
 | `src/lib/signs.tsx` | The approved sign lexicon, shared app-wide, and the matcher that finds signed terms in text |
 | `src/lib/handsign` | Sign recognition without a browser dependency (tested with `npm test`): hand geometry and handshape scoring (with HamNoSys palm codes read relative to the fingers), body sites, word keyframes and the time-aligned word matcher and segmenter, the letter matcher and stabiliser, the learned-model runners, plain-language descriptions, and synthetic hands and signers |
+| `src/lib/handsign/mediapipe.ts` | Browser-only: runs MediaPipe hand and pose tracking on a video frame (live camera or a recorded clip) and assigns each hand to the nearer body wrist |
+| `scripts/analyze-samples.ts` | Re-scores recorded samples with the browser's recogniser and reports accuracy and the weakest part per letter or word |
 | `src/lib/theme.ts` | MUI theme: type scale, colour modes and a strong focus ring. See [design.md](design.md) |
 
 ## Research behind the features

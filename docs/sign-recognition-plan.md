@@ -209,6 +209,36 @@ Two findings that changed earlier work:
   written as one code point or two; three demo words did not match until this was fixed. The same
   bug would have stopped some glossary signs from appearing in lessons.
 
+## After the first real test (2026-11-20)
+
+A first test with a real camera was inaccurate. No samples were recorded, so the cause could not be
+read from data; three changes followed:
+
+- **Handshapes were too sensitive to camera jitter.** Finger curl is now measured over the longer
+  middle-knuckle-to-tip line, and hand points are smoothed over time (live, and across a recorded
+  signing). With webcam-level jitter in synthetic tests, handshapes went from 68% to 90% correct and
+  words from 52/60 to 60/60; the correct word's handshape score from 26% to 74%.
+- **Hands are told apart by the body**, not by the hand model's left/right label, which is unreliable
+  with one hand in view: each hand belongs to the nearer wrist of the body tracker. A "Swap hands"
+  switch is there if it still goes wrong.
+- **"Show what Prism sees"** gives a live readout of which hand is the signing hand, its shape,
+  direction and nearest body site, and `frontend/scripts/analyze-samples.ts` re-scores recorded
+  samples and shows which part fails per letter or word.
+
+**The next step needs real recordings:** a few samples of each letter and word from the Record
+samples tabs, then `node scripts/analyze-samples.ts --api http://localhost:8080`.
+
+## Phase 3 status (2026-11-20)
+
+- **Review assistant:** in Sign glossary → Deaf review, "Compare with the documented sign" tracks
+  the uploaded clip in the browser (`trackClip` in `src/lib/handsign/mediapipe.ts`) and compares it
+  with the term's IsharaKotha description, part by part, or by handshape and direction alone when the
+  body is not in view. It advises; the deaf reviewer decides.
+- **Demo readiness:** every page fits a 375-pixel phone screen; the demo script with fallbacks is in
+  [demo-script.md](demo-script.md).
+- **Not done:** the models still load from Google's servers (no offline copy), and the demo has not
+  been rehearsed with a deaf signer.
+
 ## Phases
 
 | Phase | Goal | Done when |
@@ -216,7 +246,7 @@ Two findings that changed earlier work:
 | **0. Data** (Nov 21–24, mostly done Nov 20) | Parse all SiGML into part templates; list and fix the files that fail; map 1994 dictionary pages to their signs; check the description licences | Templates for at least 3,700 words, and a list of known gaps |
 | **1. Fingerspelling** (Nov 25–30; built Nov 20, accuracy not yet measured) | Handshape classifier; recognise the 37 letters of the two-hand alphabet live in the browser | At least 90% letter accuracy on the team's own recordings; demo for the "Zero to Launch" submission |
 | **2. Single signs** (Dec 1–20; built Nov 20, accuracy not yet measured) | Location, direction and movement detectors; matcher with explanations for 30–50 chosen signs (health, family, school) | Correct sign in the top 3 at least 80% of the time on held-out recordings by people who did not build it, ideally deaf signers |
-| **3. Congress demo** (Dec 26) | A parent practises signs and gets part-by-part feedback; fingerspelling; review assistant on one clip | Runs live on a laptop and a mid-range phone |
+| **3. Congress demo** (Dec 26; review assistant and demo script built Nov 20) | A parent practises signs and gets part-by-part feedback; fingerspelling; review assistant on one clip | Runs live on a laptop and a mid-range phone |
 | **4. After the Congress** | Grow to hundreds of signs; tune templates with approved clips; real signers' variation; pilot with deaf partners | Accuracy reported per sign and per part on a public test set built with deaf partners |
 
 ## How success is measured
