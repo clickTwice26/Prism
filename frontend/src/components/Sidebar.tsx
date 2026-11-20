@@ -17,6 +17,7 @@ import type { IconSvgElement } from "@hugeicons/react";
 import {
   AccessibilityIcon,
   BookOpen01Icon,
+  BookOpen02Icon,
   HandIcon,
   Home01Icon,
   PrismIcon,
@@ -44,6 +45,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/lessons", label: "Lessons", hint: "Text with signs", icon: BookOpen01Icon },
       { href: "/live", label: "Live class", hint: "Captions and interpreter", icon: Video01Icon },
       { href: "/fingerspell", label: "Fingerspell", hint: "Spell with your hands", icon: HandIcon },
+      { href: "/dictionary", label: "Sign dictionary", hint: "Watch a 3D signer", icon: BookOpen02Icon },
       { href: "/signs", label: "Sign words", hint: "Sign and get feedback", icon: SignLanguageCIcon },
     ],
   },

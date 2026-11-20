@@ -207,6 +207,17 @@ export const getAllTemplates = () => request<(WordTemplate & { section?: string;
 /** Stores the template written down from an approved key-term clip. */
 export const saveDerived = (videoId: number, template: WordTemplate) =>
   request<void>(`/api/sign/videos/${videoId}/derived`, { method: "PUT", body: JSON.stringify({ template }) });
+/**
+ * A documented sign's SiGML (HamNoSys) description, by corpus ID or word, for
+ * the 3D sign preview. Null when the corpus does not document it.
+ */
+export async function getSignSiGML(by: { id: string } | { word: string }): Promise<string | null> {
+  const q = "id" in by ? `id=${encodeURIComponent(by.id)}` : `word=${encodeURIComponent(by.word)}`;
+  const res = await fetch(`${apiBase()}/api/sign/sigml?${q}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new ApiError(`Could not load the sign description (${res.status})`, res.status);
+  return res.text();
+}
 export const getWordTemplates = (words: string[]) =>
   request<WordTemplate[]>(`/api/sign/templates?words=${encodeURIComponent(words.join(","))}`);
 
