@@ -27,6 +27,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { listLessons, logUsage, type Lesson } from "@/lib/api";
 import { describeWord, wordFeedback } from "@/lib/handsign/describe.ts";
+import { SignAvatar } from "@/components/SignAvatar";
 import type { WordTemplate } from "@/lib/handsign/motion.ts";
 import { signWord } from "@/lib/handsign/syntheticSigning.ts";
 import { isWordModel, wordModelScores, type WordModel } from "@/lib/handsign/wordModel.ts";
@@ -424,18 +425,21 @@ export function SignWords() {
                 </Typography>
                 {wordPicker}
                 {targetTemplate && (
-                  <Box component="dl" sx={{ m: 0 }}>
-                    {describeWord(targetTemplate).map((d, i) => (
-                      <Box key={`${d.label}-${i}`} sx={{ mb: 1 }}>
-                        <Typography component="dt" variant="subtitle1">
-                          {d.label}
-                        </Typography>
-                        <Typography component="dd" sx={{ m: 0 }}>
-                          {d.text}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
+                  <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: { md: "flex-start" } }}>
+                    <SignAvatar key={targetTemplate.id} id={targetTemplate.id} word={target} maxWidth={280} />
+                    <Box component="dl" sx={{ m: 0, flex: 1 }}>
+                      {describeWord(targetTemplate).map((d, i) => (
+                        <Box key={`${d.label}-${i}`} sx={{ mb: 1 }}>
+                          <Typography component="dt" variant="subtitle1">
+                            {d.label}
+                          </Typography>
+                          <Typography component="dd" sx={{ m: 0 }}>
+                            {d.text}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </Stack>
                 )}
                 <Typography variant="caption" color="text.secondary">
                   From the IsharaKotha sign descriptions. Signs vary by region: check with a deaf signer.
