@@ -3,7 +3,6 @@ package ai
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,16 +17,16 @@ const GeminiAPIRevision = "2026-05-20"
 // Gemini is the Google Gemini backend, using the Interactions API
 // (POST /v1beta/interactions), Google's recommended API since 2026.
 type Gemini struct {
-	key, baseURL                       string
-	model, imageModel, ttsModel, voice string
-	thinkingLevel                      string // "" leaves the model default
-	http                               *http.Client
+	key, baseURL  string
+	model         string
+	thinkingLevel string // "" leaves the model default
+	http          *http.Client
 }
 
-func NewGemini(key, baseURL, model, imageModel, ttsModel, voice, thinkingLevel string) *Gemini {
+func NewGemini(key, baseURL, model, thinkingLevel string) *Gemini {
 	return &Gemini{
 		key: key, baseURL: strings.TrimRight(baseURL, "/"),
-		model: model, imageModel: imageModel, ttsModel: ttsModel, voice: voice, thinkingLevel: thinkingLevel,
+		model: model, thinkingLevel: thinkingLevel,
 		http: &http.Client{Timeout: 120 * time.Second},
 	}
 }
@@ -36,10 +35,8 @@ func (g *Gemini) Name() string  { return "gemini" }
 func (g *Gemini) Enabled() bool { return g.key != "" }
 
 type geminiPart struct {
-	Type     string `json:"type"`
-	Text     string `json:"text,omitempty"`
-	Data     string `json:"data,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
+	Type string `json:"type"`
+	Text string `json:"text,omitempty"`
 }
 
 type geminiResponse struct {
@@ -91,25 +88,7 @@ func (r geminiResponse) outputs() []geminiPart {
 	return parts
 }
 
-// splitDataURL turns "data:image/png;base64,AAAA" into ("image/png", "AAAA").
-func splitDataURL(u string) (string, string, error) {
-	head, data, ok := strings.Cut(strings.TrimPrefix(u, "data:"), ",")
-	mime, _, _ := strings.Cut(head, ";")
-	if !ok || !strings.Contains(head, ";base64") || mime == "" {
-		return "", "", fmt.Errorf("gemini: image must be a base64 data URL")
-	}
-	return mime, data, nil
-}
-
 func (g *Gemini) Generate(ctx context.Context, r Request) (string, error) {
-	var input any = r.Text
-	if r.ImageDataURL != "" {
-		mime, data, err := splitDataURL(r.ImageDataURL)
-		if err != nil {
-			return "", err
-		}
-		input = []geminiPart{{Type: "text", Text: r.Text}, {Type: "image", Data: data, MimeType: mime}}
-	}
 	cfg := map[string]any{"temperature": r.Temperature}
 	if r.MaxTokens > 0 {
 		// Thinking tokens count towards the output budget, so leave headroom.
@@ -121,7 +100,7 @@ func (g *Gemini) Generate(ctx context.Context, r Request) (string, error) {
 	body := map[string]any{
 		"model":              g.model,
 		"system_instruction": r.System,
-		"input":              input,
+		"input":              r.Text,
 		"generation_config":  cfg,
 	}
 	if r.JSON {
@@ -141,88 +120,4 @@ func (g *Gemini) Generate(ctx context.Context, r Request) (string, error) {
 		return "", fmt.Errorf("gemini: no text in response")
 	}
 	return b.String(), nil
-}
-
-func (g *Gemini) Image(ctx context.Context, prompt string) (string, error) {
-	resp, err := g.interact(ctx, map[string]any{
-		"model": g.imageModel,
-		"input": prompt,
-		"response_format": map[string]any{
-			"type": "image", "mime_type": "image/png", "aspect_ratio": "1:1", "image_size": "1K",
-		},
-	})
-	if err != nil {
-		return "", err
-	}
-	for _, p := range resp.outputs() {
-		if p.Type == "image" && p.Data != "" {
-			mime := p.MimeType
-			if mime == "" {
-				mime = "image/png"
-			}
-			return "data:" + mime + ";base64," + p.Data, nil
-		}
-	}
-	return "", fmt.Errorf("gemini image: no image returned")
-}
-
-// Speech returns a WAV file (24 kHz mono 16-bit, the unary default). The
-// voice speaks Bangla, English and Malay; the style note keeps it calm.
-func (g *Gemini) Speech(ctx context.Context, text, _ string) ([]byte, string, error) {
-	resp, err := g.interact(ctx, map[string]any{
-		"model": g.ttsModel,
-		"input": []map[string]any{{
-			"type": "user_input",
-			"content": []map[string]any{{
-				"type": "text",
-				"text": text,
-				"annotations": []map[string]any{{
-					"type":  "speech_metadata",
-					"style": "clear, calm and unhurried, for a student",
-				}},
-			}},
-		}},
-		"response_format":   map[string]any{"type": "audio"},
-		"generation_config": map[string]any{"speech_config": []map[string]any{{"voice": g.voice}}},
-	})
-	if err != nil {
-		return nil, "", err
-	}
-	for _, p := range resp.outputs() {
-		if p.Type == "audio" && p.Data != "" {
-			audio, err := base64.StdEncoding.DecodeString(p.Data)
-			if err != nil {
-				return nil, "", fmt.Errorf("gemini speech: bad audio data")
-			}
-			if strings.HasPrefix(strings.ToLower(p.MimeType), "audio/l16") {
-				return wavFromPCM(audio, 24000), "audio/wav", nil // browsers cannot play raw PCM
-			}
-			return audio, "audio/wav", nil
-		}
-	}
-	return nil, "", fmt.Errorf("gemini speech: no audio returned")
-}
-
-// wavFromPCM wraps raw 16-bit mono little-endian PCM in a WAV (RIFF) header.
-func wavFromPCM(pcm []byte, rate int) []byte {
-	var b bytes.Buffer
-	le := func(v uint32, n int) {
-		for i := 0; i < n; i++ {
-			b.WriteByte(byte(v >> (8 * i)))
-		}
-	}
-	b.WriteString("RIFF")
-	le(uint32(36+len(pcm)), 4)
-	b.WriteString("WAVEfmt ")
-	le(16, 4)             // fmt chunk size
-	le(1, 2)              // PCM
-	le(1, 2)              // mono
-	le(uint32(rate), 4)   // sample rate
-	le(uint32(rate*2), 4) // byte rate
-	le(2, 2)              // block align
-	le(16, 2)             // bits per sample
-	b.WriteString("data")
-	le(uint32(len(pcm)), 4)
-	b.Write(pcm)
-	return b.Bytes()
 }

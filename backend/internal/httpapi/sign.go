@@ -21,7 +21,7 @@ import (
 	"github.com/clickTwice26/Prism/backend/internal/store"
 )
 
-// ---- Prism Sign (N5): Bangla Sign Language glossary, interpreter window and
+// ---- Prism Sign: Bangla Sign Language glossary, interpreter window and
 // community lexicon. AI only finds a lesson's key terms; people record every
 // sign and deaf reviewers approve it before learners see it. ----
 
@@ -489,22 +489,4 @@ func (s *Server) signMedia(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	http.ServeFile(w, r, path)
-}
-
-// ---- adaptive lessons ----
-
-// chunkSigns lists the approved glossary terms that appear in a chunk's text.
-func (s *Server) chunkSigns(ctx context.Context, text, lang string) ([]store.SignTerm, error) {
-	lex, err := s.db.Lexicon(ctx)
-	if err != nil {
-		return nil, err
-	}
-	lower := store.NormTerm(text)
-	out := []store.SignTerm{}
-	for _, t := range lex {
-		if l := t.Labels[lang]; l != "" && strings.Contains(lower, store.NormTerm(l)) {
-			out = append(out, t)
-		}
-	}
-	return out, nil
 }

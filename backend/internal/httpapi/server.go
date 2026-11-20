@@ -18,11 +18,9 @@ import (
 	"github.com/clickTwice26/Prism/backend/internal/ai"
 	"github.com/clickTwice26/Prism/backend/internal/cache"
 	"github.com/clickTwice26/Prism/backend/internal/config"
-	"github.com/clickTwice26/Prism/backend/internal/gate"
 	"github.com/clickTwice26/Prism/backend/internal/live"
 	"github.com/clickTwice26/Prism/backend/internal/signref"
 	"github.com/clickTwice26/Prism/backend/internal/store"
-	"github.com/clickTwice26/Prism/backend/internal/tts"
 )
 
 type Server struct {
@@ -30,20 +28,18 @@ type Server struct {
 	db    *store.Store
 	cache *cache.Cache
 	ai    *ai.Client
-	gate  *gate.Gate
-	piper *tts.Piper
 	hub   *live.Hub
 	log   *slog.Logger
 
 	signRef *signref.Index
 }
 
-func New(cfg config.Config, db *store.Store, c *cache.Cache, aic *ai.Client, piper *tts.Piper, hub *live.Hub, log *slog.Logger) *Server {
+func New(cfg config.Config, db *store.Store, c *cache.Cache, aic *ai.Client, hub *live.Hub, log *slog.Logger) *Server {
 	ref := signref.Load(cfg.SignReferenceDir)
 	if ref.Size() > 0 {
 		log.Info("sign reference word list loaded", "words", ref.Size())
 	}
-	return &Server{cfg: cfg, db: db, cache: c, ai: aic, gate: gate.New(aic, db, aic.Enabled), piper: piper, hub: hub, log: log, signRef: ref}
+	return &Server{cfg: cfg, db: db, cache: c, ai: aic, hub: hub, log: log, signRef: ref}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -55,37 +51,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/lessons/{id}", s.getLesson)
 	mux.HandleFunc("POST /api/lessons", s.createLesson)
 
-	mux.Handle("POST /api/simplify", s.limited(s.simplify))
-	mux.Handle("POST /api/quiz", s.limited(s.quiz))
 	mux.Handle("POST /api/translate", s.limited(s.translate))
-	mux.Handle("POST /api/describe-image", s.limited(s.describeImage))
-	mux.Handle("POST /api/illustrate", s.limited(s.illustrate))
-	mux.HandleFunc("GET /api/tts/languages", s.ttsLanguages)
-	mux.Handle("POST /api/tts", s.limited(s.speak))
 
 	mux.HandleFunc("POST /api/usage", s.logUsage)
 	mux.HandleFunc("GET /api/usage/summary", s.usageSummary)
 
-	mux.HandleFunc("POST /api/study/participants", s.createParticipant)
-	mux.HandleFunc("GET /api/study/participants", s.listParticipants)
-	mux.HandleFunc("POST /api/study/results", s.createResult)
-	mux.HandleFunc("GET /api/study/results", s.listResults)
-	mux.HandleFunc("GET /api/study/summary", s.studySummary)
-
-	// N2: fidelity gate review queue.
-	mux.HandleFunc("GET /api/review", s.listReviews)
-	mux.HandleFunc("GET /api/review/count", s.reviewCount)
-	mux.HandleFunc("POST /api/review/{id}/approve", s.decideReview(true))
-	mux.HandleFunc("POST /api/review/{id}/reject", s.decideReview(false))
-
-	// N1: comprehension-driven adaptive lessons.
-	mux.HandleFunc("POST /api/learners", s.createLearner)
-	mux.HandleFunc("GET /api/learners", s.listLearners)
-	mux.HandleFunc("GET /api/learners/{id}/insights", s.learnerInsights)
-	mux.Handle("POST /api/learn/next", s.limited(s.nextChunk))
-	mux.HandleFunc("POST /api/learn/answer", s.answerChunk)
-
-	// N5: Prism Sign (Bangla Sign Language).
+	// Prism Sign (Bangla Sign Language).
 	mux.HandleFunc("GET /api/sign/lessons/{id}", s.getLessonSigns)
 	mux.Handle("POST /api/sign/lessons/{id}/terms/extract", s.limited(s.extractTerms))
 	mux.HandleFunc("POST /api/sign/lessons/{id}/terms", s.addLessonTerm)
@@ -197,7 +168,7 @@ func clientIP(r *http.Request) string {
 
 // ---- helpers ----
 
-const maxBody = 12 << 20 // images arrive as data URLs
+const maxBody = 1 << 20 // JSON bodies are small; videos use multipart uploads
 
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBody)

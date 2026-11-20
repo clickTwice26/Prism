@@ -18,7 +18,6 @@ import (
 	"github.com/clickTwice26/Prism/backend/internal/httpapi"
 	"github.com/clickTwice26/Prism/backend/internal/live"
 	"github.com/clickTwice26/Prism/backend/internal/store"
-	"github.com/clickTwice26/Prism/backend/internal/tts"
 )
 
 func main() {
@@ -58,9 +57,9 @@ func run(log *slog.Logger) error {
 	var backend ai.Backend
 	switch cfg.AIProvider {
 	case "openai":
-		backend = ai.NewOpenAI(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel, cfg.OpenAIImageModel, cfg.OpenAITTSModel, cfg.OpenAITTSVoice)
+		backend = ai.NewOpenAI(cfg.OpenAIKey, cfg.OpenAIBaseURL, cfg.OpenAIModel)
 	case "gemini":
-		backend = ai.NewGemini(cfg.GeminiKey, cfg.GeminiBaseURL, cfg.GeminiModel, cfg.GeminiImageModel, cfg.GeminiTTSModel, cfg.GeminiTTSVoice, cfg.GeminiThinkingLevel)
+		backend = ai.NewGemini(cfg.GeminiKey, cfg.GeminiBaseURL, cfg.GeminiModel, cfg.GeminiThinkingLevel)
 	default:
 		return fmt.Errorf("AI_PROVIDER must be gemini or openai, got %q", cfg.AIProvider)
 	}
@@ -68,13 +67,12 @@ func run(log *slog.Logger) error {
 	if aic.Enabled() {
 		log.Info("AI provider ready", "provider", aic.Provider())
 	} else {
-		log.Warn("no API key for the AI provider: AI features return 503, simplify uses the offline rules", "provider", aic.Provider())
+		log.Warn("no API key for the AI provider: key-term finding and translation return 503", "provider", aic.Provider())
 	}
-	piper := tts.NewPiper(cfg.PiperBin, cfg.PiperVoicesDir)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.New(cfg, db, rc, aic, piper, hub, log).Handler(),
+		Handler:           httpapi.New(cfg, db, rc, aic, hub, log).Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	errc := make(chan error, 1)
