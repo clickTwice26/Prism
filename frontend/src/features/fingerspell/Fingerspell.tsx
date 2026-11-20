@@ -26,6 +26,7 @@ import { makeLetter, noisy, translate } from "@/lib/handsign/synthetic.ts";
 import { describeLetter, feedback } from "@/lib/handsign/describe.ts";
 import { HandView, PartBars, type HandViewHandle } from "./HandView";
 import { RecordPanel, type Recorder } from "./RecordPanel";
+import { Diagnostics } from "./Diagnostics";
 import { useHandTracker, type TrackedHands } from "./useHandTracker";
 
 type Mode = "spell" | "practice" | "record";
@@ -57,6 +58,13 @@ export function Fingerspell() {
   const [text, setText] = useState("");
   const [target, setTarget] = useState("ক");
   const [simulate, setSimulate] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
+  const [swapHands, setSwapHands] = useState(false);
+  const [lastFrame, setLastFrame] = useState<TrackedHands | null>(null);
+  const diagRef = useRef(false);
+  useEffect(() => {
+    diagRef.current = showDiag;
+  }, [showDiag]);
   const [simLetter, setSimLetter] = useState("ক");
 
   const view = useRef<HandViewHandle>(null);
@@ -112,12 +120,13 @@ export function Fingerspell() {
       if (frameNo.current++ % 3 === 0) {
         setTop(ranked);
         setHandsSeen((hands.dominant ? 1 : 0) + (hands.other ? 1 : 0));
+        if (diagRef.current && frameNo.current % 6 === 1) setLastFrame(hands);
       }
     },
     [announce],
   );
 
-  const tracker = useHandTracker(videoRef, { dominant, onFrame });
+  const tracker = useHandTracker(videoRef, { dominant, onFrame, withBody: true, swapHands });
   const setRecorder = useCallback((r: Recorder | null) => {
     recorder.current = r;
   }, []);
@@ -239,6 +248,14 @@ export function Fingerspell() {
                 </ToggleButtonGroup>
               </Stack>
               {tracker.error && <Alert severity="warning">{tracker.error}</Alert>}
+              <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap" }}>
+                <FormControlLabel control={<Switch checked={showDiag} onChange={(e) => setShowDiag(e.target.checked)} />} label="Show what Prism sees" />
+                <FormControlLabel
+                  control={<Switch checked={swapHands} onChange={(e) => setSwapHands(e.target.checked)} />}
+                  label="Swap hands (if Prism mixes up your hands)"
+                />
+              </Stack>
+              {showDiag && <Diagnostics frame={lastFrame} />}
               {live && (
                 <Typography variant="body2" color="text.secondary" role="status">
                   {handsSeen === 2 ? "Both hands seen." : handsSeen === 1 ? "One hand seen. Show both hands." : "No hands seen yet."}

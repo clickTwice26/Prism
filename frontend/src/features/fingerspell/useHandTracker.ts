@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
-import { mirror, toSignerFrame, type HandPoints, type Vec } from "@/lib/handsign/hand.ts";
+import { mirror, PointSmoother, toSignerFrame, type HandPoints, type Vec } from "@/lib/handsign/hand.ts";
 import { bodyFrom, mirrorBody, type Body } from "@/lib/handsign/body.ts";
 
 // The hand model is Google's published MediaPipe hand landmarker. Only
@@ -25,6 +25,8 @@ export interface TrackedHands {
   image: { points: { x: number; y: number }[]; dominant: boolean }[];
   /** Raw image body points (0-1), for drawing. */
   imageBody?: { x: number; y: number }[] | null;
+  /** How the signing hand was told apart from the other one, for the diagnostics panel. */
+  sides?: { side: "left" | "right"; label: string; by: "body" | "model" | "position" }[];
   t: number;
 }
 
@@ -36,6 +38,8 @@ interface Options {
   onFrame: (hands: TrackedHands) => void;
   /** Also track the body (face and shoulders), for where signs are made. */
   withBody?: boolean;
+  /** Swap which hand is which, if the tracker gets them the wrong way round. */
+  swapHands?: boolean;
 }
 
 /**
@@ -44,7 +48,7 @@ interface Options {
  * un-mirrored camera image, so its Left/Right labels are the signer's own
  * hands; only the preview on screen is mirrored.
  */
-export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { dominant, onFrame, withBody = false }: Options) {
+export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { dominant, onFrame, withBody = false, swapHands = false }: Options) {
   const [status, setStatus] = useState<TrackerStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const landmarker = useRef<HandLandmarker | null>(null);
@@ -52,11 +56,13 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
   const stream = useRef<MediaStream | null>(null);
   const raf = useRef<number | null>(null);
   const lastTime = useRef(-1);
-  const opts = useRef({ dominant, onFrame });
+  // Smooths each hand over time, so jitter does not read as a bending finger.
+  const smoothers = useRef({ dominant: new PointSmoother(0.5), other: new PointSmoother(0.5) });
+  const opts = useRef({ dominant, onFrame, swapHands });
 
   useEffect(() => {
-    opts.current = { dominant, onFrame };
-  }, [dominant, onFrame]);
+    opts.current = { dominant, onFrame, swapHands };
+  }, [dominant, onFrame, swapHands]);
 
   const stop = useCallback(() => {
     if (raf.current !== null) cancelAnimationFrame(raf.current);
@@ -78,21 +84,38 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
         lastTime.current = v.currentTime;
         const now = performance.now();
         const res = lm.detectForVideo(v, now);
-        const pose = poser.current?.detectForVideo(v, now).landmarks[0] ?? null;
         const aspect = v.videoWidth / Math.max(v.videoHeight, 1);
-        const { dominant: dom } = opts.current;
-        const hands = res.landmarks.map((points, i) => ({
-          points,
-          side: (res.handedness[i]?.[0]?.categoryName ?? "").toLowerCase() as "left" | "right" | "",
-        }));
-        // When both hands get the same label (it happens when they touch), split them by position:
-        // the signer's right hand is on the image's left.
-        if (hands.length === 2 && hands[0].side === hands[1].side) {
+        const { dominant: dom, swapHands: swap } = opts.current;
+        const pose = poser.current?.detectForVideo(v, now).landmarks[0] ?? null;
+        const hands = res.landmarks.map((points, i) => {
+          const label = res.handedness[i]?.[0]?.categoryName ?? "";
+          return { points, label, side: label.toLowerCase() as "left" | "right" | "", by: "model" as "body" | "model" | "position" };
+        });
+        // Which hand is which. The body tracker knows the signer's left and right wrists, so when the
+        // body is visible, each hand belongs to the nearer wrist; the hand model's own label is a fallback.
+        if (pose) {
+          const wrist = { left: pose[15], right: pose[16] };
+          const d = (h: (typeof hands)[number], w: { x: number; y: number }) => Math.hypot(h.points[0].x - w.x, h.points[0].y - w.y);
+          if (hands.length === 2) {
+            const [a, b] = hands;
+            const aLeft = d(a, wrist.left) + d(b, wrist.right) < d(a, wrist.right) + d(b, wrist.left);
+            a.side = aLeft ? "left" : "right";
+            b.side = aLeft ? "right" : "left";
+            a.by = b.by = "body";
+          } else if (hands.length === 1) {
+            hands[0].side = d(hands[0], wrist.left) < d(hands[0], wrist.right) ? "left" : "right";
+            hands[0].by = "body";
+          }
+        } else if (hands.length === 2 && hands[0].side === hands[1].side) {
+          // Both hands got the same label (it happens when they touch): split them by position.
+          // The signer's right hand is on the image's left.
           const [a, b] = hands;
           const aRight = a.points[0].x < b.points[0].x;
           a.side = aRight ? "right" : "left";
           b.side = aRight ? "left" : "right";
+          a.by = b.by = "position";
         }
+        if (swap) for (const h of hands) h.side = h.side === "left" ? "right" : h.side === "right" ? "left" : "";
         const domHand = hands.find((h) => h.side === dom) ?? null;
         const otherHand = hands.find((h) => h !== domHand) ?? null;
         const conv = (h: typeof domHand) => {
@@ -106,12 +129,13 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
           bodyPoints = dom === "left" ? mirrorBody(pts) : pts;
         }
         opts.current.onFrame({
-          dominant: conv(domHand),
-          other: conv(otherHand),
+          dominant: smoothers.current.dominant.push(conv(domHand)),
+          other: smoothers.current.other.push(conv(otherHand)),
           body: bodyPoints ? bodyFrom(bodyPoints) : null,
           bodyPoints,
           image: hands.map((h) => ({ points: h.points, dominant: h === domHand })),
           imageBody: pose,
+          sides: hands.filter((h) => h.side).map((h) => ({ side: h.side as "left" | "right", label: h.label, by: h.by })),
           t: now,
         });
       }

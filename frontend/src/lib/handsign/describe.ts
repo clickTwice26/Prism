@@ -37,7 +37,7 @@ const DIR_WORDS: Record<string, string> = {
 };
 
 /** The nearest direction code for a vector in the signer's frame, e.g. [0, 0, -1] → "i". */
-function codeFor(v: Vec): string {
+export function codeFor(v: Vec): string {
   const parts: [number, string, string][] = [
     [v[1], "u", "d"],
     [v[0], "r", "l"],

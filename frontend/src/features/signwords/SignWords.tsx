@@ -41,6 +41,7 @@ import {
 } from "@/lib/handsign/words.ts";
 import { HandView, PartBars, type HandViewHandle } from "../fingerspell/HandView";
 import { RecordPanel, type RecordKind, type Recorder } from "../fingerspell/RecordPanel";
+import { Diagnostics } from "../fingerspell/Diagnostics";
 import { useHandTracker, type TrackedHands } from "../fingerspell/useHandTracker";
 
 type Mode = "recognise" | "practise" | "record";
@@ -73,6 +74,13 @@ export function SignWords() {
   const [seen, setSeen] = useState({ hand: false, body: false });
   const [target, setTarget] = useState(DEMO_WORDS[0].bn);
   const [simulate, setSimulate] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
+  const [swapHands, setSwapHands] = useState(false);
+  const [lastFrame, setLastFrame] = useState<TrackedHands | null>(null);
+  const diagRef = useRef(false);
+  useEffect(() => {
+    diagRef.current = showDiag;
+  }, [showDiag]);
 
   const view = useRef<HandViewHandle>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -144,12 +152,13 @@ export function SignWords() {
       if (frameNo.current++ % 3 === 0) {
         setSigning(segmenter.current.recording);
         setSeen({ hand: !!h.dominant, body: !!h.body });
+        if (diagRef.current && frameNo.current % 6 === 1) setLastFrame(h);
       }
     },
     [recognise],
   );
 
-  const tracker = useHandTracker(videoRef, { dominant, onFrame, withBody: true });
+  const tracker = useHandTracker(videoRef, { dominant, onFrame, withBody: true, swapHands });
   const setRecorder = useCallback((r: Recorder | null) => {
     recorder.current = r;
   }, []);
@@ -283,6 +292,14 @@ export function SignWords() {
                 </ToggleButtonGroup>
               </Stack>
               {tracker.error && <Alert severity="warning">{tracker.error}</Alert>}
+              <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: "wrap" }}>
+                <FormControlLabel control={<Switch checked={showDiag} onChange={(e) => setShowDiag(e.target.checked)} />} label="Show what Prism sees" />
+                <FormControlLabel
+                  control={<Switch checked={swapHands} onChange={(e) => setSwapHands(e.target.checked)} />}
+                  label="Swap hands (if Prism mixes up your hands)"
+                />
+              </Stack>
+              {showDiag && <Diagnostics frame={lastFrame} />}
               {live && (
                 <Typography variant="body2" color="text.secondary" role="status">
                   {!seen.body
