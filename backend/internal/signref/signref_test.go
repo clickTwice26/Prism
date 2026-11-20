@@ -64,3 +64,22 @@ func TestLettersAndTemplatesAreLoaded(t *testing.T) {
 		t.Fatalf("stats: %+v", st)
 	}
 }
+
+func TestBanglaNamesAreNormalised(t *testing.T) {
+	dir := t.TempDir()
+	sec := filepath.Join(dir, "Sections", "1 কাজ (Work)")
+	if err := os.MkdirAll(sec, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// "আসো" with ো written as two code points (ে + া).
+	decomposed := "আসো (Come).sigml"
+	sign := `<sigml><hns_sign><hamnosys_manual><hamfist/><hamextfingeru/><hampalml/><hamchest/></hamnosys_manual></hns_sign></sigml>`
+	if err := os.WriteFile(filepath.Join(sec, decomposed), []byte(sign), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	idx := Load(dir)
+	composed := "আসো"
+	if ts := idx.Templates("", []string{composed}); len(ts) != 1 || ts[0].Bangla != composed {
+		t.Fatalf("lookup by the composed form failed: %+v", ts)
+	}
+}

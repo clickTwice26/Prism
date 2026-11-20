@@ -7,13 +7,21 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/text/unicode/norm"
 )
 
 // ---- Prism Sign (N5) ----
 
-// NormTerm is the matching form of a term label: lower case, single spaces.
+// NormTerm is the matching form of a term label: Unicode NFC (Bangla vowel
+// signs such as ো can be written as one code point or two), lower case,
+// single spaces.
 func NormTerm(s string) string {
-	return strings.ToLower(strings.Join(strings.Fields(s), " "))
+	return strings.ToLower(strings.Join(strings.Fields(norm.NFC.String(s)), " "))
+}
+
+// CleanLabel trims a label, joins its spaces and puts it in Unicode NFC.
+func CleanLabel(s string) string {
+	return strings.Join(strings.Fields(norm.NFC.String(s)), " ")
 }
 
 // SignVideo is a recorded sign: a glossary clip for one term, or an
@@ -90,7 +98,7 @@ func (s *Store) UpsertTerm(ctx context.Context, labels map[string]string) (int64
 		}
 	}
 	for lang, label := range labels {
-		label = strings.Join(strings.Fields(label), " ")
+		label = CleanLabel(label)
 		if label == "" {
 			continue
 		}

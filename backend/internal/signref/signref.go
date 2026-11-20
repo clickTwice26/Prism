@@ -54,6 +54,7 @@ type Index struct {
 var name = regexp.MustCompile(`^(?:\d+\s+)?(.+?)\s*\(([^()]*)\)\s*$`)
 
 func splitName(s string) (bn, en string) {
+	s = store.CleanLabel(s)
 	if m := name.FindStringSubmatch(s); m != nil {
 		bn, en = strings.TrimSpace(m[1]), strings.TrimSpace(m[2])
 	} else {

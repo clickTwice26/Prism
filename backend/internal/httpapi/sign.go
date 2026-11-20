@@ -42,7 +42,7 @@ func pathID(w http.ResponseWriter, r *http.Request, name string) (int64, bool) {
 }
 
 func shortText(s string, max int) (string, bool) {
-	s = strings.Join(strings.Fields(s), " ")
+	s = store.CleanLabel(s)
 	return s, s != "" && utf8.RuneCountInString(s) <= max
 }
 
