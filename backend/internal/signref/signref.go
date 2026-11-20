@@ -63,8 +63,20 @@ func splitName(s string) (bn, en string) {
 	if strings.EqualFold(en, "unknown") || strings.EqualFold(en, "sentence") {
 		en = ""
 	}
+	// Underscores stand for spaces, and some names append an English gloss
+	// after one: "উচুনিচু_High and Low".
+	if m := glossSuffix.FindStringSubmatch(bn); m != nil {
+		bn = m[1]
+		if en == "" {
+			en = m[2]
+		}
+	}
+	bn = strings.TrimSpace(strings.ReplaceAll(bn, "_", " "))
+	en = strings.TrimSpace(strings.ReplaceAll(en, "_", " "))
 	return bn, en
 }
+
+var glossSuffix = regexp.MustCompile(`^(.*?[^A-Za-z0-9 _])_([A-Za-z].*)$`)
 
 // Load walks dir for .sigml files. A missing dir gives an empty index.
 func Load(dir string) *Index {

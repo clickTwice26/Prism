@@ -1,6 +1,7 @@
 package signref
 
 import (
+	"github.com/clickTwice26/Prism/backend/internal/store"
 	"os"
 	"path/filepath"
 	"testing"
@@ -81,5 +82,20 @@ func TestBanglaNamesAreNormalised(t *testing.T) {
 	composed := "আসো"
 	if ts := idx.Templates("", []string{composed}); len(ts) != 1 || ts[0].Bangla != composed {
 		t.Fatalf("lookup by the composed form failed: %+v", ts)
+	}
+}
+
+func TestUnderscoresInNames(t *testing.T) {
+	cases := [][3]string{
+		{"প্রশ্ন_চিহ্ন (Question Mark)", "প্রশ্ন চিহ্ন", "Question Mark"},
+		{"উচুনিচু_High and Low", "উচুনিচু", "High and Low"},
+		{"বয়লার_Boiler (Unknown)", "বয়লার", "Boiler"},
+		{"ঈদ_উল_ফিতর (Eid ul-Fitr)", "ঈদ উল ফিতর", "Eid ul-Fitr"},
+	}
+	for _, c := range cases {
+		bn, en := splitName(c[0])
+		if bn != store.CleanLabel(c[1]) || en != c[2] {
+			t.Errorf("%q: got %q / %q", c[0], bn, en)
+		}
 	}
 }
