@@ -18,6 +18,7 @@ import { useAnnounce } from "@/components/Announcer";
 import { SignClipPlayer } from "@/components/SignClip";
 import { LANGUAGES, approveSignVideo, listSignVideos, rejectSignVideo, signMediaUrl, type SignVideo } from "@/lib/api";
 import { SIGNS_CHANGED, signsChanged } from "@/lib/signs";
+import { ClipCheck } from "./ClipCheck";
 
 const REVIEWER_KEY = "prism.sign.reviewer";
 
@@ -161,6 +162,7 @@ function ReviewCard({
             <Typography variant="body2" color="text.secondary">
               Check: is this the sign deaf people already use? Is it clear, and does it mean this word in this subject?
             </Typography>
+            {term && <ClipCheck video={video} />}
             <TextField
               label="Note for the signer (optional)"
               multiline
