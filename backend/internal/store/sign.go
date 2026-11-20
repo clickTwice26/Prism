@@ -364,3 +364,10 @@ func (s *Store) DeleteDerived(ctx context.Context, videoID int64) error {
 	_, err := s.Pool.Exec(ctx, `DELETE FROM sign_derived WHERE video_id=$1`, videoID)
 	return err
 }
+
+// HasTermLabel reports whether any sign term has this label (any language).
+func (s *Store) HasTermLabel(ctx context.Context, label string) (bool, error) {
+	var ok bool
+	err := s.Pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM sign_term_labels WHERE norm=$1)`, NormTerm(label)).Scan(&ok)
+	return ok, err
+}

@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -246,7 +247,7 @@ func (s *Server) missingSigns(w http.ResponseWriter, r *http.Request) {
 
 // signTemplates serves documented signs broken into parts (handshape,
 // orientation, location, movement) for the recogniser. Filter with
-// ?section=Letters or ?words=জ্বর,fever (Bangla or English).
+// ?section=Letters, ?words=জ্বর,fever (Bangla or English) or ?all=1.
 func (s *Server) signTemplates(w http.ResponseWriter, r *http.Request) {
 	var words []string
 	if q := r.URL.Query().Get("words"); q != "" {
@@ -257,12 +258,24 @@ func (s *Server) signTemplates(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	section := strings.TrimSpace(r.URL.Query().Get("section"))
-	if section == "" && len(words) == 0 {
-		writeError(w, http.StatusUnprocessableEntity, "give a section or words")
+	all := r.URL.Query().Get("all") == "1"
+	if section == "" && len(words) == 0 && !all {
+		writeError(w, http.StatusUnprocessableEntity, "give a section, words or all=1")
 		return
 	}
 	w.Header().Set("Cache-Control", "public, max-age=3600")
-	writeJSON(w, http.StatusOK, s.signRef.Templates(section, words))
+	out := s.signRef.Templates(section, words)
+	// The whole corpus is a few megabytes of JSON but compresses about 15 times.
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		_ = json.NewEncoder(gz).Encode(out)
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Server) signReference(w http.ResponseWriter, r *http.Request) {

@@ -71,8 +71,8 @@ func (s *Server) createSignSample(w http.ResponseWriter, r *http.Request) {
 	case in.Kind == "letter" && len(s.signRef.Templates("Letters", []string{in.Label})) == 0:
 		writeError(w, http.StatusUnprocessableEntity, "unknown letter")
 		return
-	case in.Kind == "word" && len(s.signRef.Templates("", []string{in.Label})) == 0:
-		writeError(w, http.StatusUnprocessableEntity, "unknown word: it has no documented sign")
+	case in.Kind == "word" && len(s.signRef.Templates("", []string{in.Label})) == 0 && !s.isTerm(r, in.Label):
+		writeError(w, http.StatusUnprocessableEntity, "unknown word: it is neither documented nor a lesson key term")
 		return
 	case !ok:
 		writeError(w, http.StatusUnprocessableEntity, "signer name is required (1-80 characters)")
@@ -174,4 +174,10 @@ func (s *Server) deleteSignSample(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// isTerm reports whether a label is a lesson key term (its sign may come from the community).
+func (s *Server) isTerm(r *http.Request, label string) bool {
+	ok, err := s.db.HasTermLabel(r.Context(), label)
+	return err == nil && ok
 }
