@@ -1,21 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import type { HandLandmarker } from "@mediapipe/tasks-vision";
-import { mirror, toSignerFrame, type HandPoints } from "@/lib/handsign/hand.ts";
+import type { HandLandmarker, PoseLandmarker } from "@mediapipe/tasks-vision";
+import { mirror, toSignerFrame, type HandPoints, type Vec } from "@/lib/handsign/hand.ts";
+import { bodyFrom, mirrorBody, type Body } from "@/lib/handsign/body.ts";
 
 // The hand model is Google's published MediaPipe hand landmarker. Only
 // skeleton points leave this hook; video frames never leave the device.
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task";
+const POSE_MODEL_URL =
+  "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
 const WASM_PATH = "/mediapipe/wasm";
 
 export interface TrackedHands {
   /** Points in the signer's frame. For left-handed signers both hands are mirrored, so "dominant" is always written as a right hand. */
   dominant: HandPoints | null;
   other: HandPoints | null;
+  /** Body anchors (when body tracking is on), in the same frame as the hands. */
+  body?: Body | null;
+  /** Body points in the signer's frame, for recording samples. */
+  bodyPoints?: Vec[] | null;
   /** Raw image points (0-1) for drawing the skeleton over the video. */
   image: { points: { x: number; y: number }[]; dominant: boolean }[];
+  /** Raw image body points (0-1), for drawing. */
+  imageBody?: { x: number; y: number }[] | null;
   t: number;
 }
 
@@ -25,6 +34,8 @@ interface Options {
   /** The signer's dominant hand. */
   dominant: "right" | "left";
   onFrame: (hands: TrackedHands) => void;
+  /** Also track the body (face and shoulders), for where signs are made. */
+  withBody?: boolean;
 }
 
 /**
@@ -33,10 +44,11 @@ interface Options {
  * un-mirrored camera image, so its Left/Right labels are the signer's own
  * hands; only the preview on screen is mirrored.
  */
-export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { dominant, onFrame }: Options) {
+export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { dominant, onFrame, withBody = false }: Options) {
   const [status, setStatus] = useState<TrackerStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const landmarker = useRef<HandLandmarker | null>(null);
+  const poser = useRef<PoseLandmarker | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const raf = useRef<number | null>(null);
   const lastTime = useRef(-1);
@@ -64,7 +76,9 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
       const lm = landmarker.current;
       if (v && lm && v.readyState >= 2 && v.currentTime !== lastTime.current) {
         lastTime.current = v.currentTime;
-        const res = lm.detectForVideo(v, performance.now());
+        const now = performance.now();
+        const res = lm.detectForVideo(v, now);
+        const pose = poser.current?.detectForVideo(v, now).landmarks[0] ?? null;
         const aspect = v.videoWidth / Math.max(v.videoHeight, 1);
         const { dominant: dom } = opts.current;
         const hands = res.landmarks.map((points, i) => ({
@@ -86,11 +100,19 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
           const pts = toSignerFrame(h.points, aspect);
           return dom === "left" ? mirror(pts) : pts;
         };
+        let bodyPoints: Vec[] | null = null;
+        if (pose) {
+          const pts = toSignerFrame(pose, aspect);
+          bodyPoints = dom === "left" ? mirrorBody(pts) : pts;
+        }
         opts.current.onFrame({
           dominant: conv(domHand),
           other: conv(otherHand),
+          body: bodyPoints ? bodyFrom(bodyPoints) : null,
+          bodyPoints,
           image: hands.map((h) => ({ points: h.points, dominant: h === domHand })),
-          t: performance.now(),
+          imageBody: pose,
+          t: now,
         });
       }
       raf.current = requestAnimationFrame(tick);
@@ -106,6 +128,15 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
           numHands: 2,
           minHandDetectionConfidence: 0.5,
           minTrackingConfidence: 0.5,
+        });
+      }
+      if (withBody && !poser.current) {
+        const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
+        const fileset = await FilesetResolver.forVisionTasks(WASM_PATH);
+        poser.current = await PoseLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: POSE_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numPoses: 1,
         });
       }
       const s = await navigator.mediaDevices.getUserMedia({ video: { width: 960, height: 540, facingMode: "user" }, audio: false });
@@ -128,13 +159,15 @@ export function useHandTracker(videoRef: RefObject<HTMLVideoElement | null>, { d
             : `Hand tracking could not start: ${msg}`,
       );
     }
-  }, [stop, videoRef]);
+  }, [stop, videoRef, withBody]);
 
   useEffect(
     () => () => {
       stop();
       landmarker.current?.close();
       landmarker.current = null;
+      poser.current?.close();
+      poser.current = null;
     },
     [stop],
   );

@@ -42,6 +42,25 @@ export const HandView = forwardRef<HandViewHandle, { label: string; simulated: b
       const ctx = c.getContext("2d");
       if (!ctx) return;
       ctx.clearRect(0, 0, w, h);
+      // Face and shoulders, faintly: where signs are placed.
+      const body = hands?.imageBody;
+      if (body) {
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        const bp = (i: number) => [(1 - body[i].x) * w, body[i].y * h] as const;
+        for (const [a, b] of [[11, 12], [11, 23], [12, 24], [23, 24], [9, 10], [7, 2], [2, 5], [5, 8]] as const) {
+          ctx.beginPath();
+          ctx.moveTo(...bp(a));
+          ctx.lineTo(...bp(b));
+          ctx.stroke();
+        }
+        for (const i of [0, 2, 5, 7, 8, 9, 10, 11, 12]) {
+          ctx.beginPath();
+          ctx.arc(...bp(i), 3, 0, 2 * Math.PI);
+          ctx.fill();
+        }
+      }
       for (const hand of hands?.image ?? []) {
         // The preview is mirrored, so mirror the skeleton too.
         const px = (i: number) => [(1 - hand.points[i].x) * w, hand.points[i].y * h] as const;
@@ -84,15 +103,22 @@ export const HandView = forwardRef<HandViewHandle, { label: string; simulated: b
 });
 
 /** Per-part match bars, so a learner sees which part is right. */
-export function PartBars({ score }: { score: LetterScore }) {
+export function PartBars<K extends string = PartName>({
+  score,
+  labels = PART_LABELS as Record<K, string>,
+}: {
+  score: Pick<LetterScore, "parts"> | { parts: Record<K, number> };
+  labels?: Record<K, string>;
+}) {
+  const parts = score.parts as Record<K, number>;
   return (
     <Stack spacing={1}>
-      {(Object.keys(PART_LABELS) as PartName[]).map((k) => {
-        const v = Math.round(score.parts[k] * 100);
+      {(Object.keys(labels) as K[]).map((k) => {
+        const v = Math.round(parts[k] * 100);
         return (
           <Box key={k}>
             <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-              <Typography variant="body2">{PART_LABELS[k]}</Typography>
+              <Typography variant="body2">{labels[k]}</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
                 {v}%
               </Typography>
@@ -101,7 +127,7 @@ export function PartBars({ score }: { score: LetterScore }) {
               variant="determinate"
               value={v}
               color={v >= 70 ? "success" : v >= 40 ? "warning" : "error"}
-              aria-label={`${PART_LABELS[k]}: ${v}% match`}
+              aria-label={`${labels[k]}: ${v}% match`}
               sx={{ height: 8, borderRadius: 4 }}
             />
           </Box>

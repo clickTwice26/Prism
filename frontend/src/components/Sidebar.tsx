@@ -44,6 +44,7 @@ export const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/lessons", label: "Lessons", hint: "Text with signs", icon: BookOpen01Icon },
       { href: "/live", label: "Live class", hint: "Captions and interpreter", icon: Video01Icon },
       { href: "/fingerspell", label: "Fingerspell", hint: "Spell with your hands", icon: HandIcon },
+      { href: "/signs", label: "Sign words", hint: "Sign and get feedback", icon: SignLanguageCIcon },
     ],
   },
   {

@@ -1,6 +1,7 @@
 // Typed client for the Prism Go API.
 
 import type { LetterTemplate } from "./handsign/letters.ts";
+import type { WordTemplate } from "./handsign/motion.ts";
 
 export type Lang = "en" | "bn" | "ms";
 
@@ -199,13 +200,16 @@ export function uploadSignVideo(u: SignUpload): Promise<SignVideo> {
 // ---- Sign recognition (docs/sign-recognition-plan.md) ----
 
 export const getLetterTemplates = () => request<LetterTemplate[]>("/api/sign/templates?section=Letters");
+export const getWordTemplates = (words: string[]) =>
+  request<WordTemplate[]>(`/api/sign/templates?words=${encodeURIComponent(words.join(","))}`);
 
 export interface SampleFrame {
   t: number;
   hands: { side: "right" | "left"; points: [number, number, number][] }[];
+  body?: [number, number, number][];
 }
 export interface NewSignSample {
-  kind: "letter";
+  kind: "letter" | "word";
   label: string;
   signer: string;
   dominant: "right" | "left";

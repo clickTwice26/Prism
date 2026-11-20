@@ -366,7 +366,7 @@ export function Fingerspell() {
 
           {mode === "record" && (
             <RecordPanel
-              letters={letters}
+              ready={letters.length > 0}
               dominant={dominant}
               live={live && !simulate}
               letterButtons={letterButtons}

@@ -18,11 +18,9 @@ import { Icon } from "@/components/Icon";
 import { useAnnounce } from "@/components/Announcer";
 import { deleteSignSample, listSignSamples, saveSignSample, type SampleFrame, type SignSampleInfo } from "@/lib/api";
 import { FEATURE_VERSION, featureVector } from "@/lib/handsign/hand.ts";
-import type { LetterTemplate } from "@/lib/handsign/letters.ts";
 import type { TrackedHands } from "./useHandTracker";
 
 const SIGNER_KEY = "prism.sign.signer";
-const SECONDS = 2;
 
 /** Collects frames while recording. Only frames with both hands are kept. */
 export interface Recorder {
@@ -30,6 +28,28 @@ export interface Recorder {
 }
 
 const round = (x: number) => Math.round(x * 1e4) / 1e4;
+const pts = (h: [number, number, number][]) => h.map((p) => p.map(round) as [number, number, number]);
+
+/** What to record: letters (both hands, 2 s) by default; words pass their own settings. */
+export interface RecordKind {
+  kind: "letter" | "word";
+  noun: string; // "letter" | "word"
+  seconds: number;
+  featureVersion: number;
+  /** Whether a frame is usable. */
+  keep: (h: TrackedHands) => boolean;
+  features: (h: TrackedHands) => number[];
+  withBody?: boolean;
+}
+
+export const LETTER_RECORDING: RecordKind = {
+  kind: "letter",
+  noun: "letter",
+  seconds: 2,
+  featureVersion: FEATURE_VERSION,
+  keep: (h) => !!h.dominant && !!h.other,
+  features: (h) => featureVector(h.dominant, h.other),
+};
 
 /**
  * Records labelled practice samples of each letter from the real camera:
@@ -37,7 +57,8 @@ const round = (x: number) => Math.round(x * 1e4) / 1e4;
  * recogniser and train the learned model (Python, ml/).
  */
 export function RecordPanel({
-  letters,
+  what = LETTER_RECORDING,
+  ready: haveLabels,
   dominant,
   live,
   letterButtons,
@@ -45,7 +66,9 @@ export function RecordPanel({
   onSimLetter,
   setRecorder,
 }: {
-  letters: LetterTemplate[];
+  what?: RecordKind;
+  /** Whether the labels (letters or words) have loaded. */
+  ready: boolean;
   dominant: "right" | "left";
   live: boolean;
   letterButtons: ReactNode;
@@ -68,10 +91,10 @@ export function RecordPanel({
   const label = simLetter;
 
   const load = useCallback(() => {
-    listSignSamples("letter")
+    listSignSamples(what.kind)
       .then(setSamples)
       .catch(() => undefined);
-  }, []);
+  }, [what.kind]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read from storage
@@ -92,13 +115,17 @@ export function RecordPanel({
     setRecorder(null);
     if (frames.current.length < 10) {
       setPhase("idle");
-      setError("Both hands were not seen long enough. Keep both hands in view and try again.");
+      setError(
+        what.kind === "letter"
+          ? "Both hands were not seen long enough. Keep both hands in view and try again."
+          : "Your signing hand and body were not seen long enough. Step back so your head and hands are in view.",
+      );
       return;
     }
     setPhase("saving");
     try {
       await saveSignSample({
-        kind: "letter",
+        kind: what.kind,
         label,
         signer: signer.trim(),
         dominant,
@@ -106,7 +133,7 @@ export function RecordPanel({
         consent,
         frames: frames.current,
         features: features.current,
-        feature_version: FEATURE_VERSION,
+        feature_version: what.featureVersion,
       });
       localStorage.setItem(SIGNER_KEY, signer.trim());
       announce(`Saved a sample of ${label}.`);
@@ -116,7 +143,7 @@ export function RecordPanel({
     } finally {
       setPhase("idle");
     }
-  }, [announce, consent, deaf, dominant, label, load, setRecorder, signer]);
+  }, [announce, consent, deaf, dominant, label, load, setRecorder, signer, what]);
 
   const record = () => {
     setError(null);
@@ -135,22 +162,23 @@ export function RecordPanel({
       setRecorder({
         push(h) {
           const t = h.t - started.current;
-          if (t > SECONDS * 1000) {
+          if (t > what.seconds * 1000) {
             setRecorder(null);
             void finish();
             return;
           }
-          if (!h.dominant || !h.other) return;
+          if (!what.keep(h)) return;
           // Points are in the signer's frame; a left-handed signer's are mirrored, so the
           // signing hand is always stored as "right" (the dominant field says which it really is).
+          const hands: SampleFrame["hands"] = [];
+          if (h.dominant) hands.push({ side: "right", points: pts(h.dominant) });
+          if (h.other) hands.push({ side: "left", points: pts(h.other) });
           frames.current.push({
             t: Math.round(t),
-            hands: [
-              { side: "right", points: h.dominant.map((p) => p.map(round) as [number, number, number]) },
-              { side: "left", points: h.other.map((p) => p.map(round) as [number, number, number]) },
-            ],
+            hands,
+            ...(what.withBody && h.bodyPoints ? { body: pts(h.bodyPoints) } : {}),
           });
-          features.current.push(featureVector(h.dominant, h.other).map(round));
+          features.current.push(what.features(h).map(round));
         },
       });
     }, 1000);
@@ -166,7 +194,7 @@ export function RecordPanel({
     }
   };
 
-  const ready = live && signer.trim() && consent && phase === "idle" && letters.length > 0;
+  const ready = live && signer.trim() && consent && phase === "idle" && haveLabels;
 
   return (
     <Paper sx={{ p: 3 }}>
@@ -175,22 +203,24 @@ export function RecordPanel({
           Record samples
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Samples show how real people sign each letter. They test the recogniser and train it. Only the positions of
-          your hand joints are saved, never video. Aim for at least 5 samples of each letter from several people,
-          ideally deaf signers.
+          Samples show how real people sign each {what.noun}. They test the recogniser and train it. Only the
+          positions of your {what.withBody ? "hand and body joints" : "hand joints"} are saved, never video. Aim for at
+          least 5 samples of each {what.noun} from several people, ideally deaf signers.
         </Typography>
         <TextField label="Your name" required value={signer} onChange={(e) => setSigner(e.target.value)} size="small" />
         <FormControlLabel control={<Checkbox checked={deaf} onChange={(e) => setDeaf(e.target.checked)} />} label="I am deaf and sign Bangla Sign Language" />
         <FormControlLabel
           control={<Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} />}
-          label="I agree that my hand positions are stored to test and train Prism's sign recognition, and I can delete them at any time."
+          label={`I agree that my ${what.withBody ? "hand and body" : "hand"} positions are stored to test and train Prism's sign recognition, and I can delete them at any time.`}
         />
         <Typography id="record-letter" variant="subtitle1">
-          Letter: <span lang="bn">{label}</span> ({counts.get(label) ?? 0} samples so far)
+          {what.noun === "letter" ? "Letter" : "Word"}: <span lang="bn">{label}</span> ({counts.get(label) ?? 0} samples so far)
         </Typography>
-        <ToggleButtonGroup exclusive size="small" value={label} onChange={(_, v) => v && onSimLetter(v)} aria-labelledby="record-letter" sx={{ flexWrap: "wrap" }}>
-          {letterButtons}
-        </ToggleButtonGroup>
+        {letterButtons && (
+          <ToggleButtonGroup exclusive size="small" value={label} onChange={(_, v) => v && onSimLetter(v)} aria-labelledby="record-letter" sx={{ flexWrap: "wrap" }}>
+            {letterButtons}
+          </ToggleButtonGroup>
+        )}
         {phase === "countdown" && (
           <Typography variant="h3" component="p" role="status">
             Get ready… {count}
@@ -200,7 +230,7 @@ export function RecordPanel({
         {!live && <Alert severity="info">Start the camera to record. Simulated hands are not saved.</Alert>}
         {error && <Alert severity="error">{error}</Alert>}
         <Button variant="contained" onClick={record} disabled={!ready} startIcon={<Icon icon={RecordIcon} />}>
-          {phase === "saving" ? "Saving…" : `Record ${SECONDS} seconds of ${label}`}
+          {phase === "saving" ? "Saving…" : `Record ${what.seconds} seconds of ${label}`}
         </Button>
         {mine.length > 0 && (
           <Stack spacing={0.5}>
