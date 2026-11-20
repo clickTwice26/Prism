@@ -37,7 +37,8 @@ type Server struct {
 func New(cfg config.Config, db *store.Store, c *cache.Cache, aic *ai.Client, hub *live.Hub, log *slog.Logger) *Server {
 	ref := signref.Load(cfg.SignReferenceDir)
 	if ref.Size() > 0 {
-		log.Info("sign reference word list loaded", "words", ref.Size())
+		st := ref.Stats()
+		log.Info("sign reference loaded", "files", st.Files, "templates", st.Parsed, "complete", st.Complete, "failed", st.Failed)
 	}
 	return &Server{cfg: cfg, db: db, cache: c, ai: aic, hub: hub, log: log, signRef: ref}
 }
@@ -64,6 +65,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/sign/lexicon", s.signLexicon)
 	mux.HandleFunc("GET /api/sign/missing", s.missingSigns)
 	mux.HandleFunc("GET /api/sign/reference", s.signReference)
+	mux.HandleFunc("GET /api/sign/templates", s.signTemplates)
 	mux.HandleFunc("POST /api/sign/videos", s.uploadSignVideo)
 	mux.HandleFunc("GET /api/sign/videos", s.listSignVideos)
 	mux.HandleFunc("GET /api/sign/videos/count", s.signVideoCount)

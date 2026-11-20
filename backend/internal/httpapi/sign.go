@@ -243,6 +243,27 @@ func (s *Server) missingSigns(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, out)
 }
 
+// signTemplates serves documented signs broken into parts (handshape,
+// orientation, location, movement) for the recogniser. Filter with
+// ?section=Letters or ?words=জ্বর,fever (Bangla or English).
+func (s *Server) signTemplates(w http.ResponseWriter, r *http.Request) {
+	var words []string
+	if q := r.URL.Query().Get("words"); q != "" {
+		words = strings.Split(q, ",")
+		if len(words) > 200 {
+			writeError(w, http.StatusUnprocessableEntity, "ask for at most 200 words")
+			return
+		}
+	}
+	section := strings.TrimSpace(r.URL.Query().Get("section"))
+	if section == "" && len(words) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, "give a section or words")
+		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+	writeJSON(w, http.StatusOK, s.signRef.Templates(section, words))
+}
+
 func (s *Server) signReference(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	writeJSON(w, http.StatusOK, map[string]any{
