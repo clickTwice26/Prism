@@ -1,0 +1,169 @@
+{
+  "chunks": {
+    "mitu": {
+      "start": 0.4,
+      "end": 1.32
+    },
+    "class": {
+      "start": 1.82,
+      "end": 3.76
+    },
+    "deaf": {
+      "start": 4.26,
+      "end": 7.66
+    },
+    "official": {
+      "start": 8.6,
+      "end": 11.68
+    },
+    "spoken": {
+      "start": 11.98,
+      "end": 15.14
+    },
+    "few": {
+      "start": 15.64,
+      "end": 19.96
+    },
+    "global": {
+      "start": 20.46,
+      "end": 21.68
+    },
+    "seventy": {
+      "start": 22.18,
+      "end": 25.74
+    },
+    "built": {
+      "start": 26.04,
+      "end": 28.46
+    },
+    "brings": {
+      "start": 30.4,
+      "end": 34.82
+    },
+    "for": {
+      "start": 35.12,
+      "end": 39.2
+    },
+    "different": {
+      "start": 42.4,
+      "end": 43.44
+    },
+    "routine": {
+      "start": 43.94,
+      "end": 47.32
+    },
+    "approve": {
+      "start": 47.62,
+      "end": 49.86
+    },
+    "private": {
+      "start": 50.36,
+      "end": 54.32
+    },
+    "underlined": {
+      "start": 60.4,
+      "end": 64.12
+    },
+    "tap": {
+      "start": 64.62,
+      "end": 66.1
+    },
+    "window": {
+      "start": 66.6,
+      "end": 71.68
+    },
+    "unrecorded": {
+      "start": 72.18,
+      "end": 76.44
+    },
+    "preview": {
+      "start": 76.74,
+      "end": 79.1
+    },
+    "parents": {
+      "start": 81.4,
+      "end": 83.46
+    },
+    "checks": {
+      "start": 83.96,
+      "end": 86.96
+    },
+    "parts": {
+      "start": 87.08,
+      "end": 89.88
+    },
+    "fix": {
+      "start": 90.18,
+      "end": 92.14
+    },
+    "alphabet": {
+      "start": 97.4,
+      "end": 101.86
+    },
+    "captions": {
+      "start": 105.4,
+      "end": 108.9
+    },
+    "join": {
+      "start": 109.2,
+      "end": 113.16
+    },
+    "three": {
+      "start": 120.4,
+      "end": 122.18
+    },
+    "gemini": {
+      "start": 122.68,
+      "end": 125.64
+    },
+    "langs": {
+      "start": 125.76,
+      "end": 127.78
+    },
+    "speech": {
+      "start": 128.28,
+      "end": 131.5
+    },
+    "mediapipe": {
+      "start": 132,
+      "end": 135
+    },
+    "compare": {
+      "start": 135.3,
+      "end": 140.56
+    },
+    "descriptions": {
+      "start": 141.06,
+      "end": 145.34
+    },
+    "measure": {
+      "start": 150.4,
+      "end": 152.68
+    },
+    "ninety": {
+      "start": 153.18,
+      "end": 155.74
+    },
+    "gain": {
+      "start": 156.04,
+      "end": 158.04
+    },
+    "rating": {
+      "start": 158.34,
+      "end": 161.54
+    },
+    "january": {
+      "start": 165.4,
+      "end": 167.88
+    },
+    "tagline": {
+      "start": 168.38,
+      "end": 172
+    },
+    "made": {
+      "start": 172.5,
+      "end": 175.06
+    }
+  },
+  "warnings": []
+}
