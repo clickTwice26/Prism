@@ -38,6 +38,7 @@ import {
 } from "@/lib/api";
 import { SIGNS_CHANGED, signsChanged } from "@/lib/signs";
 import { useSettings } from "@/lib/settings";
+import { NewLesson } from "./NewLesson";
 import { SignRecorder, type RecordTarget } from "./SignRecorder";
 import { ReferenceNote } from "./ReferenceNote";
 
@@ -79,6 +80,14 @@ export function LessonSigns() {
   }, [load]);
 
   const lesson = lessons.find((l) => l.id === lessonId);
+
+  // A new lesson gets its key terms straight away when AI is on.
+  const created = (l: Lesson) => {
+    setLessons((ls) => [...ls, l]);
+    setLessonId(l.id);
+    if (data?.ai) void run(() => extractLessonTerms(l.id), `Added ${l.title} and found its key terms.`);
+    else announce(`Added ${l.title}. Add its key terms below.`);
+  };
 
   const run = async (fn: () => Promise<LessonSignsData>, done: string) => {
     setBusy(true);
@@ -134,6 +143,7 @@ export function LessonSigns() {
               ))}
             </Select>
           </FormControl>
+          <NewLesson onCreated={created} />
 
           {data && (
             <Stack spacing={1}>
