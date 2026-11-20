@@ -2,7 +2,8 @@
 // comprehension results (novelty N1).
 //
 // A mix is a combination of supports for one lesson chunk: simplified text,
-// read-aloud and a picture. A learner's profile only sets the starting mix.
+// read-aloud, a picture and, for deaf and hard-of-hearing learners, Bangla
+// Sign Language (glossary signs for key terms plus the interpreter window). A learner's profile only sets the starting mix.
 // After each chunk's question, Thompson sampling over a Beta posterior per mix
 // favours the mixes that led to correct answers for this learner, while still
 // trying nearby mixes now and then. Accommodation effects differ by student
@@ -21,9 +22,10 @@ type Mix struct {
 	Simple  bool `json:"simple"`
 	Audio   bool `json:"audio"`
 	Picture bool `json:"picture"`
+	Sign    bool `json:"sign"`
 }
 
-// Key is the stored form, e.g. "simple+audio", "original+picture" or "original".
+// Key is the stored form, e.g. "simple+audio", "original+picture+sign" or "original".
 func (m Mix) Key() string {
 	parts := []string{"original"}
 	if m.Simple {
@@ -34,6 +36,9 @@ func (m Mix) Key() string {
 	}
 	if m.Picture {
 		parts = append(parts, "picture")
+	}
+	if m.Sign {
+		parts = append(parts, "sign")
 	}
 	return strings.Join(parts, "+")
 }
@@ -48,6 +53,8 @@ func ParseMix(key string) Mix {
 			m.Audio = true
 		case "picture":
 			m.Picture = true
+		case "sign":
+			m.Sign = true
 		}
 	}
 	return m
@@ -74,7 +81,8 @@ func Default(profile string) Mix {
 	case "blind", "low_vision", "dyslexia":
 		return Mix{Audio: true} // read-aloud: Wood et al., 2017
 	case "deaf", "hard_of_hearing":
-		return Mix{Picture: true}
+		// Sign with captions beats either alone (Debevc et al., 2015).
+		return Mix{Picture: true, Sign: true}
 	case "autism":
 		return Mix{Simple: true, Picture: true} // visual supports
 	case "intellectual_disability":
@@ -86,8 +94,15 @@ func Default(profile string) Mix {
 	}
 }
 
-// Allowed rules out supports a learner cannot perceive.
+// SignProfile reports whether sign is offered to a profile.
+func SignProfile(profile string) bool { return profile == "deaf" || profile == "hard_of_hearing" }
+
+// Allowed rules out supports a learner cannot perceive, and offers sign only
+// to deaf and hard-of-hearing learners.
 func Allowed(profile string, m Mix) bool {
+	if m.Sign && !SignProfile(profile) {
+		return false
+	}
 	switch profile {
 	case "blind":
 		return !m.Picture && m.Audio // must be able to hear the chunk
@@ -110,9 +125,11 @@ func Candidates(profile string, tried []string) []Mix {
 		}
 	}
 	add(start)
-	add(Mix{!start.Simple, start.Audio, start.Picture})
-	add(Mix{start.Simple, !start.Audio, start.Picture})
-	add(Mix{start.Simple, start.Audio, !start.Picture})
+	flip := func(f func(*Mix)) Mix { m := start; f(&m); return m }
+	add(flip(func(m *Mix) { m.Simple = !m.Simple }))
+	add(flip(func(m *Mix) { m.Audio = !m.Audio }))
+	add(flip(func(m *Mix) { m.Picture = !m.Picture }))
+	add(flip(func(m *Mix) { m.Sign = !m.Sign }))
 	for _, k := range tried {
 		add(ParseMix(k))
 	}

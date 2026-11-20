@@ -6,7 +6,7 @@ import (
 )
 
 func TestMixKeyRoundTrip(t *testing.T) {
-	for _, m := range []Mix{{}, {Simple: true}, {Audio: true, Picture: true}, {true, true, true}} {
+	for _, m := range []Mix{{}, {Simple: true}, {Audio: true, Picture: true}, {Simple: true, Audio: true, Picture: true, Sign: true}} {
 		if got := ParseMix(m.Key()); got != m {
 			t.Fatalf("%v -> %q -> %v", m, m.Key(), got)
 		}
@@ -26,6 +26,35 @@ func TestCandidatesRespectWhatALearnerCanPerceive(t *testing.T) {
 		if m.Audio {
 			t.Fatalf("deaf learner offered %s", m.Key())
 		}
+	}
+}
+
+func TestSignIsOfferedOnlyToDeafAndHardOfHearingLearners(t *testing.T) {
+	offered := func(profile string) bool {
+		for _, m := range Candidates(profile, []string{"original+sign"}) {
+			if m.Sign {
+				return true
+			}
+		}
+		return false
+	}
+	for _, p := range []string{"deaf", "hard_of_hearing"} {
+		if !offered(p) {
+			t.Fatalf("%s learner should be offered sign", p)
+		}
+	}
+	for _, p := range []string{"blind", "dyslexia", "autism", "none"} {
+		if offered(p) {
+			t.Fatalf("%s learner should not be offered sign", p)
+		}
+	}
+	// Prism measures sign rather than assuming it helps: a mix without it is a candidate too.
+	without := false
+	for _, m := range Candidates("deaf", nil) {
+		without = without || !m.Sign
+	}
+	if !without {
+		t.Fatal("deaf learner should also try a mix without sign")
 	}
 }
 
