@@ -255,7 +255,7 @@ export function SignWords() {
 
   return (
     <Stack spacing={3}>
-      <Tabs value={mode} onChange={(_, v: Mode) => (setMode(v), setResult(null))} aria-label="Sign words mode" sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Tabs value={mode} onChange={(_, v: Mode) => (setMode(v), setResult(null))} aria-label="Sign words mode" variant="scrollable" allowScrollButtonsMobile sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tab value="recognise" label="Recognise" />
         <Tab value="practise" label="Practise a word" />
         <Tab value="record" label="Record samples" />

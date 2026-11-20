@@ -211,7 +211,7 @@ export function Fingerspell() {
 
   return (
     <Stack spacing={3}>
-      <Tabs value={mode} onChange={(_, v: Mode) => setMode(v)} aria-label="Fingerspelling mode" sx={{ borderBottom: 1, borderColor: "divider" }}>
+      <Tabs value={mode} onChange={(_, v: Mode) => setMode(v)} aria-label="Fingerspelling mode" variant="scrollable" allowScrollButtonsMobile sx={{ borderBottom: 1, borderColor: "divider" }}>
         <Tab value="spell" label="Spell" />
         <Tab value="practice" label="Practise a letter" />
         <Tab value="record" label="Record samples" />
