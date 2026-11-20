@@ -2,14 +2,20 @@
 // students over WebSockets. Rooms are coordinated through Redis pub/sub, so
 // any number of API instances can serve the same class.
 //
+// Roles: teacher (class video and captions), student (watches), and
+// interpreter (a Bangla Sign Language interpreter, who may be in another city:
+// they watch and hear the class, and stream their signing as a second video).
+//
 // Text frames (JSON)
 //
 //	client → server: hello{role,name} | caption{final,text} | clear | video_start{mime} | video_stop
-//	server → client: joined{room} | roster{students,count} (teachers) | caption | clear | video_start | video_stop
+//	server → client: joined{room} | roster{students,count,interpreter} (teachers) | caption | clear |
+//	                 video_start{mime,stream} | video_stop{stream}
 //
-// Binary frames: teacher → students WebM chunks. The first chunk after
-// video_start (the WebM init segment) is kept in Redis so late joiners can
-// start decoding mid-stream.
+// Binary frames: teacher or interpreter → server WebM chunks. Server → client
+// frames start with one stream byte (0 = class video, 1 = interpreter), then
+// the chunk. The first chunk after video_start (the WebM init segment) is kept
+// in Redis per stream so late joiners can start decoding mid-stream.
 package live
 
 import (
@@ -42,6 +48,19 @@ type frame struct {
 	data   []byte
 }
 
+// Streams a class can carry.
+const (
+	StreamClass = "class"
+	StreamSign  = "sign"
+)
+
+func streamByte(stream string) byte {
+	if stream == StreamSign {
+		return 1
+	}
+	return 0
+}
+
 type Client struct {
 	id, room     string
 	role, name   string
@@ -52,7 +71,7 @@ type Client struct {
 // envelope is what travels over Redis between instances.
 type envelope struct {
 	Origin string          `json:"o"`
-	To     string          `json:"t"` // others | students | teachers
+	To     string          `json:"t"` // others | students (and interpreters) | teachers
 	Text   json.RawMessage `json:"x,omitempty"`
 	Bin    []byte          `json:"b,omitempty"`
 }
@@ -98,7 +117,8 @@ func (h *Hub) deliver(room string, env envelope) {
 		if c.id == env.Origin {
 			continue
 		}
-		if (env.To == "students" && c.role != "student") || (env.To == "teachers" && c.role != "teacher") {
+		// Interpreters get what students get: they must see and hear the class.
+		if (env.To == "students" && c.role != "student" && c.role != "interpreter") || (env.To == "teachers" && c.role != "teacher") {
 			continue
 		}
 		f := frame{data: env.Text}
@@ -125,14 +145,32 @@ func (h *Hub) publishJSON(ctx context.Context, room, origin, to string, v any) {
 }
 
 func studentsKey(room string) string { return "live:" + room + ":students" }
-func videoKey(room string) string    { return "live:" + room + ":video" }
+func interpKey(room string) string   { return "live:" + room + ":interpreter" }
+
+func videoKey(room, stream string) string {
+	if stream == StreamSign {
+		return "live:" + room + ":sign"
+	}
+	return "live:" + room + ":video"
+}
+
+// stream is the video a client sends: interpreters send sign, teachers class.
+func (c *Client) stream() string {
+	if c.role == "interpreter" {
+		return StreamSign
+	}
+	return StreamClass
+}
+
+func (c *Client) streams() bool { return c.role == "teacher" || c.role == "interpreter" }
 
 func (h *Hub) roster(ctx context.Context, room string) map[string]any {
 	names, _ := h.rdb.HVals(ctx, studentsKey(room)).Result()
 	if names == nil {
 		names = []string{}
 	}
-	return map[string]any{"type": "roster", "students": names, "count": len(names)}
+	interp, _ := h.rdb.Exists(ctx, interpKey(room)).Result()
+	return map[string]any{"type": "roster", "students": names, "count": len(names), "interpreter": interp > 0}
 }
 
 // Serve runs one WebSocket connection until it closes.
@@ -212,19 +250,25 @@ func (h *Hub) onText(ctx context.Context, c *Client, data []byte) {
 	}
 	switch m.Type {
 	case "hello":
-		if m.Role != "teacher" && m.Role != "student" {
+		if m.Role != "teacher" && m.Role != "student" && m.Role != "interpreter" {
 			return
 		}
 		c.role, c.name = m.Role, clip(m.Name, 40)
-		if c.role == "student" {
+		switch c.role {
+		case "interpreter":
+			h.rdb.Set(ctx, interpKey(c.room), c.name, keyTTL)
+			h.publishJSON(ctx, c.room, c.id, "teachers", h.roster(ctx, c.room))
+			h.catchUpVideo(ctx, c, StreamClass)
+		case "student":
 			if c.name == "" {
 				c.name = "Student"
 			}
 			h.rdb.HSet(ctx, studentsKey(c.room), c.id, c.name)
 			h.rdb.Expire(ctx, studentsKey(c.room), keyTTL)
 			h.publishJSON(ctx, c.room, c.id, "teachers", h.roster(ctx, c.room))
-			h.catchUpVideo(ctx, c)
-		} else {
+			h.catchUpVideo(ctx, c, StreamClass)
+			h.catchUpVideo(ctx, c, StreamSign)
+		default:
 			h.sendJSON(c, h.roster(ctx, c.room))
 		}
 	case "caption":
@@ -237,7 +281,7 @@ func (h *Hub) onText(ctx context.Context, c *Client, data []byte) {
 			h.publishJSON(ctx, c.room, c.id, "others", map[string]any{"type": "clear"})
 		}
 	case "video_start":
-		if c.role != "teacher" {
+		if !c.streams() {
 			return
 		}
 		mime := clip(m.Mime, 80)
@@ -245,35 +289,41 @@ func (h *Hub) onText(ctx context.Context, c *Client, data []byte) {
 			return
 		}
 		c.startedVideo = true
-		h.rdb.Del(ctx, videoKey(c.room))
-		h.rdb.HSet(ctx, videoKey(c.room), "mime", mime)
-		h.rdb.Expire(ctx, videoKey(c.room), keyTTL)
-		h.publishJSON(ctx, c.room, c.id, "students", map[string]any{"type": "video_start", "mime": mime})
+		key := videoKey(c.room, c.stream())
+		h.rdb.Del(ctx, key)
+		h.rdb.HSet(ctx, key, "mime", mime)
+		h.rdb.Expire(ctx, key, keyTTL)
+		h.publishJSON(ctx, c.room, c.id, "students", map[string]any{"type": "video_start", "mime": mime, "stream": c.stream()})
 	case "video_stop":
-		if c.role == "teacher" {
+		if c.streams() {
 			h.stopVideo(ctx, c)
 		}
 	}
 }
 
 func (h *Hub) onVideoChunk(ctx context.Context, c *Client, data []byte) {
-	if c.role != "teacher" || !c.startedVideo {
+	if !c.streams() || !c.startedVideo {
 		return
 	}
 	// The first chunk is the WebM init segment; keep it for late joiners.
-	h.rdb.HSetNX(ctx, videoKey(c.room), "header", data)
-	h.publish(ctx, c.room, envelope{Origin: c.id, To: "students", Bin: data})
+	h.rdb.HSetNX(ctx, videoKey(c.room, c.stream()), "header", data)
+	h.publish(ctx, c.room, envelope{Origin: c.id, To: "students", Bin: tagged(c.stream(), data)})
 }
 
-func (h *Hub) catchUpVideo(ctx context.Context, c *Client) {
-	v, err := h.rdb.HGetAll(ctx, videoKey(c.room)).Result()
+func tagged(stream string, data []byte) []byte {
+	out := make([]byte, 0, len(data)+1)
+	return append(append(out, streamByte(stream)), data...)
+}
+
+func (h *Hub) catchUpVideo(ctx context.Context, c *Client, stream string) {
+	v, err := h.rdb.HGetAll(ctx, videoKey(c.room, stream)).Result()
 	if err != nil || v["mime"] == "" {
 		return
 	}
-	h.sendJSON(c, map[string]any{"type": "video_start", "mime": v["mime"]})
+	h.sendJSON(c, map[string]any{"type": "video_start", "mime": v["mime"], "stream": stream})
 	if hdr := v["header"]; hdr != "" {
 		select {
-		case c.out <- frame{binary: true, data: []byte(hdr)}:
+		case c.out <- frame{binary: true, data: tagged(stream, []byte(hdr))}:
 		default:
 		}
 	}
@@ -281,8 +331,8 @@ func (h *Hub) catchUpVideo(ctx context.Context, c *Client) {
 
 func (h *Hub) stopVideo(ctx context.Context, c *Client) {
 	c.startedVideo = false
-	h.rdb.Del(ctx, videoKey(c.room))
-	h.publishJSON(ctx, c.room, c.id, "students", map[string]any{"type": "video_stop"})
+	h.rdb.Del(ctx, videoKey(c.room, c.stream()))
+	h.publishJSON(ctx, c.room, c.id, "students", map[string]any{"type": "video_stop", "stream": c.stream()})
 }
 
 func (h *Hub) leave(ctx context.Context, c *Client) {
@@ -297,9 +347,13 @@ func (h *Hub) leave(ctx context.Context, c *Client) {
 	case "student":
 		h.rdb.HDel(ctx, studentsKey(c.room), c.id)
 		h.publishJSON(ctx, c.room, c.id, "teachers", h.roster(ctx, c.room))
-	case "teacher":
+	case "teacher", "interpreter":
 		if c.startedVideo {
 			h.stopVideo(ctx, c)
+		}
+		if c.role == "interpreter" {
+			h.rdb.Del(ctx, interpKey(c.room))
+			h.publishJSON(ctx, c.room, c.id, "teachers", h.roster(ctx, c.room))
 		}
 	}
 }
