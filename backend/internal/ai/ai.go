@@ -137,6 +137,51 @@ func (c *Client) Quiz(ctx context.Context, text, lang string, n int) ([]QuizQues
 	return parsed.Questions, nil
 }
 
+// KeyTerm is one subject term a deaf learner needs a sign for, written in
+// each supported language.
+type KeyTerm map[string]string
+
+// KeyTerms picks the 5-10 subject words a lesson depends on, for the Bangla
+// Sign Language glossary (N5). Deaf learners miss subject vocabulary most, so
+// the prompt asks for subject terms, not everyday words. Each term comes back
+// in English, Bangla and Malay so one sign can be found in any of them; the
+// label in the lesson's own language is copied exactly from the text.
+func (c *Client) KeyTerms(ctx context.Context, text, lang string) ([]KeyTerm, error) {
+	system := "You pick the key subject terms of a school lesson, for a sign language glossary for deaf learners. " +
+		"Choose 5 to 10 terms that the lesson depends on and that a learner must know to follow it: subject " +
+		"vocabulary such as 'chlorophyll' or 'evaporation', not everyday words, names of people or whole phrases. " +
+		"The lesson is in " + langName(lang) + ". Copy each term in the lesson's language exactly as it appears " +
+		"in the text (same spelling, singular form if both appear), and give the usual school word for it in the " +
+		"other languages. Reply with JSON only: " +
+		`{"terms":[{"en":"...","bn":"...","ms":"..."}]}`
+	raw, err := c.gen(ctx, Request{System: system, Text: text, Temperature: 0, MaxTokens: 700, JSON: true})
+	if err != nil {
+		return nil, err
+	}
+	var parsed struct {
+		Terms []KeyTerm `json:"terms"`
+	}
+	if err := parseJSON(raw, &parsed); err != nil {
+		return nil, fmt.Errorf("key terms: unreadable reply")
+	}
+	out := make([]KeyTerm, 0, len(parsed.Terms))
+	for _, t := range parsed.Terms {
+		clean := KeyTerm{}
+		for code := range Languages {
+			if v := strings.TrimSpace(t[code]); v != "" && len([]rune(v)) <= 60 {
+				clean[code] = v
+			}
+		}
+		if clean[lang] != "" {
+			out = append(out, clean)
+		}
+	}
+	if len(out) > 10 {
+		out = out[:10]
+	}
+	return out, nil
+}
+
 func (c *Client) Translate(ctx context.Context, text, lang string) (string, error) {
 	system := "You translate classroom lesson text into " + langName(lang) + ". Keep every fact and the " +
 		"exact meaning; do not add, remove or explain anything. Keep it natural for a student. If it is " +
