@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -23,7 +23,9 @@ import Typography from "@mui/material/Typography";
 import { Camera01Icon, StopIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/Icon";
 import { useAnnounce } from "@/components/Announcer";
-import { getWordTemplates, logUsage } from "@/lib/api";
+import Autocomplete from "@mui/material/Autocomplete";
+import TextField from "@mui/material/TextField";
+import { listLessons, logUsage, type Lesson } from "@/lib/api";
 import { describeWord, wordFeedback } from "@/lib/handsign/describe.ts";
 import type { WordTemplate } from "@/lib/handsign/motion.ts";
 import { signWord } from "@/lib/handsign/syntheticSigning.ts";
@@ -44,12 +46,12 @@ import { HandView, PartBars, type HandViewHandle } from "../fingerspell/HandView
 import { RecordPanel, type RecordKind, type Recorder } from "../fingerspell/RecordPanel";
 import { Diagnostics } from "../fingerspell/Diagnostics";
 import { useHandTracker, type TrackedHands } from "../fingerspell/useHandTracker";
+import { loadVocabulary, type VocabSource, type Vocabulary } from "./vocabulary";
 
 type Mode = "recognise" | "practise" | "record";
 const SETTINGS_KEY = "prism.fingerspell.v1"; // shared with the Fingerspell page: the signing hand
 const MODEL_URL = "/models/words.json"; // optional, trained in Python (ml/)
 const SIM_WORDS = ["জ্বর", "বই", "পানি", "ধন্যবাদ"].map((w) => w.normalize("NFC"));
-const EN = new Map(DEMO_WORDS.map((w) => [w.bn, w.en]));
 
 const WORD_RECORDING: RecordKind = {
   kind: "word",
@@ -67,6 +69,10 @@ export function SignWords() {
   const announce = useAnnounce();
   const [mode, setMode] = useState<Mode>("recognise");
   const [vocab, setVocab] = useState<WordTemplate[]>([]);
+  const [source, setSource] = useState<VocabSource>("demo");
+  const [vocabInfo, setVocabInfo] = useState<Vocabulary | null>(null);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [loadingVocab, setLoadingVocab] = useState(false);
   const [model, setModel] = useState<WordModel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dominant, setDominant] = useState<"right" | "left">("right");
@@ -88,16 +94,17 @@ export function SignWords() {
   const segmenter = useRef(new SignSegmenter());
   const recorder = useRef<Recorder | null>(null);
   const frameNo = useRef(0);
-  const state = useRef({ vocab, model, mode, target });
+  const state = useRef({ vocab, model, mode, target, gloss: new Map<string, string>(), simWords: SIM_WORDS });
 
   useEffect(() => {
-    state.current = { vocab, model, mode, target };
-  }, [vocab, model, mode, target]);
+    const simWords = vocabInfo && source !== "demo" ? vocabInfo.words.slice(0, 4) : SIM_WORDS;
+    state.current = { vocab, model, mode, target, gloss: vocabInfo?.gloss ?? new Map(), simWords };
+  }, [vocab, model, mode, target, vocabInfo, source]);
 
   useEffect(() => {
-    getWordTemplates(DEMO_WORDS.map((w) => w.bn))
-      .then(setVocab)
-      .catch((e: Error) => setError(e.message));
+    listLessons()
+      .then(setLessons)
+      .catch(() => undefined);
     fetch(MODEL_URL)
       .then((r) => (r.ok ? r.json() : null))
       .then((m: unknown) => setModel(isWordModel(m) ? m : null))
@@ -110,6 +117,28 @@ export function SignWords() {
       /* ignore */
     }
   }, []);
+
+  // The vocabulary: the demo words, every documented sign, or one lesson's key terms.
+  useEffect(() => {
+    let live = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading state for a new vocabulary
+    setLoadingVocab(true);
+    loadVocabulary(source)
+      .then((v) => {
+        if (!live) return;
+        setVocabInfo(v);
+        setVocab(v.templates);
+        setResult(null);
+        setTarget((t) => (v.words.includes(t) ? t : (v.words[0] ?? t)));
+      })
+      .catch((e: Error) => live && setError(e.message))
+      .finally(() => live && setLoadingVocab(false));
+    return () => {
+      live = false;
+    };
+  }, [source]);
+
+  const gloss = (w: string) => vocabInfo?.gloss.get(w) ?? "";
 
   const chooseDominant = (d: "right" | "left") => {
     setDominant(d);
@@ -130,7 +159,7 @@ export function SignWords() {
       setResult(ranked);
       if (!ranked.length) return;
       if (md === "recognise") {
-        announce(`${ranked[0].word}, ${EN.get(ranked[0].word) ?? ""}`);
+        announce(`${ranked[0].word}, ${state.current.gloss.get(ranked[0].word) ?? ""}`);
         logUsage("signwords", "recognised", { word: ranked[0].word });
       } else if (md === "practise") {
         const mine = ranked.find((r) => resultMeans(r, tg));
@@ -178,8 +207,8 @@ export function SignWords() {
     let round = 0;
     const id = window.setInterval(() => {
       if (queue.length === 0) {
-        const { mode: md, target: tg } = state.current;
-        const word = md === "practise" || md === "record" ? tg : SIM_WORDS[round % SIM_WORDS.length];
+        const { mode: md, target: tg, simWords } = state.current;
+        const word = md === "practise" || md === "record" ? tg : simWords[round % Math.max(simWords.length, 1)];
         const variants = vocab.filter((t) => t.bn === word);
         const t = variants[round % Math.max(variants.length, 1)];
         round++;
@@ -233,24 +262,37 @@ export function SignWords() {
   const best = result?.[0];
   const live = tracker.status === "running" || simulate;
 
-  const groups = useMemo(() => {
-    const m = new Map<string, typeof DEMO_WORDS>();
-    for (const w of DEMO_WORDS) m.set(w.group, [...(m.get(w.group) ?? []), w]);
-    return [...m.entries()];
-  }, []);
-
+  const words = vocabInfo?.words ?? [];
   const wordPicker = (
+    <Autocomplete
+      size="small"
+      options={words}
+      value={words.includes(target) ? target : null}
+      onChange={(_, v) => {
+        if (v) {
+          setTarget(v);
+          setResult(null);
+        }
+      }}
+      groupBy={source === "demo" ? (w) => vocabInfo?.group.get(w) ?? "" : undefined}
+      getOptionLabel={(w) => (gloss(w) ? `${w} · ${gloss(w)}` : w)}
+      renderInput={(params) => <TextField {...params} label={`Word (${words.length})`} />}
+    />
+  );
+
+  const vocabPicker = (
     <FormControl fullWidth size="small">
-      <InputLabel id="word-pick">Word</InputLabel>
-      <Select labelId="word-pick" label="Word" value={target} onChange={(e) => (setTarget(e.target.value), setResult(null))}>
-        {groups.flatMap(([g, ws]) => [
-          <ListSubheader key={g}>{g}</ListSubheader>,
-          ...ws.map((w) => (
-            <MenuItem key={w.bn} value={w.bn}>
-              <span lang="bn">{w.bn}</span>&nbsp;· {w.en}
-            </MenuItem>
-          )),
-        ])}
+      <InputLabel id="vocab-pick">Words to recognise</InputLabel>
+      <Select labelId="vocab-pick" label="Words to recognise" value={source} onChange={(e) => setSource(e.target.value as VocabSource)}>
+        <MenuItem value="demo">Demo words ({DEMO_WORDS.length})</MenuItem>
+        <MenuItem value="all">All documented words (about 3,500)</MenuItem>
+        <ListSubheader>A lesson&apos;s key terms</ListSubheader>
+        {lessons.map((l) => (
+          <MenuItem key={l.id} value={`lesson:${l.id}`}>
+            {l.subject ? `${l.subject}: ` : ""}
+            {l.title}
+          </MenuItem>
+        ))}
       </Select>
     </FormControl>
   );
@@ -269,6 +311,13 @@ export function SignWords() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Paper sx={{ p: 2 }}>
             <Stack spacing={2}>
+              {vocabPicker}
+              {loadingVocab && <LinearProgress aria-label="Loading the words" />}
+              {!loadingVocab && vocabInfo && words.length === 0 && (
+                <Alert severity="info">
+                  None of this lesson&apos;s key terms has a sign yet. Approve signs in the Sign glossary first.
+                </Alert>
+              )}
               <HandView ref={view} label="You, mirrored" simulated={simulate} />
               <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: "center" }}>
                 {tracker.status === "running" ? (
@@ -327,14 +376,19 @@ export function SignWords() {
                 </Typography>
                 {!best ? (
                   <Typography color="text.secondary">
-                    Sign one of the {DEMO_WORDS.length} words below. {simulate && "The simulation signs জ্বর, বই, পানি and ধন্যবাদ."}
+                    Sign one of the {words.length.toLocaleString()} words. {simulate && `The simulation signs ${(source === "demo" ? SIM_WORDS : words.slice(0, 4)).join(", ")}.`}
                   </Typography>
                 ) : (
                   <Stack spacing={1.5}>
                     <Typography variant="display" component="p" lang="bn" role="status">
                       {best.word}
                     </Typography>
-                    <Typography variant="lead">{EN.get(best.word)}</Typography>
+                    <Typography variant="lead">{gloss(best.word)}</Typography>
+                    {vocabInfo?.learned.has(best.word) && (
+                      <Typography variant="caption" color="text.secondary">
+                        Recognised using a sign learned from an approved community clip.
+                      </Typography>
+                    )}
                     {best.alsoMeans.length > 0 && (
                       <Typography variant="body2" color="text.secondary">
                         The same sign also means: <span lang="bn">{best.alsoMeans.join(", ")}</span>. Context tells them apart.
@@ -355,7 +409,7 @@ export function SignWords() {
                   </Stack>
                 )}
                 <Typography variant="caption" color="text.secondary">
-                  Words: {DEMO_WORDS.map((w) => w.bn).join(" · ")}
+                  {words.length <= 60 ? `Words: ${words.join(" · ")}` : `${words.length.toLocaleString()} documented words.`}
                 </Typography>
               </Stack>
             </Paper>
@@ -365,7 +419,8 @@ export function SignWords() {
             <Paper sx={{ p: 3 }}>
               <Stack spacing={2}>
                 <Typography variant="h4" component="h2">
-                  Practise <span lang="bn">{target}</span> ({EN.get(target)})
+                  Practise <span lang="bn">{target}</span>
+                  {gloss(target) ? ` (${gloss(target)})` : ""}
                 </Typography>
                 {wordPicker}
                 {targetTemplate && (
