@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { bodyFrom, mirrorBody, POSE, sitePosition, syntheticBody } from "./body.ts";
 import { wordKeyframes, type WordTemplate } from "./motion.ts";
 import { signWord } from "./syntheticSigning.ts";
-import { DEMO_WORDS, SignSegmenter, scoreWords, weakestWordPart, wordFeatureVector, type SignFrame } from "./words.ts";
+import { DEMO_WORDS, SignSegmenter, resultMeans, scoreWords, weakestWordPart, wordFeatureVector, type SignFrame } from "./words.ts";
 
 const body = bodyFrom(syntheticBody())!;
 
@@ -92,7 +92,7 @@ test("demo words are recognised from synthetic signers", { skip: !existsSync(TEM
     for (const [j, t] of vocab.filter((v) => v.bn === w.bn).entries()) {
       const ranked = scoreWords(signWord(t, i * 10 + j + 1), vocab);
       n++;
-      const rank = ranked.findIndex((r) => r.word === w.bn);
+      const rank = ranked.findIndex((r) => resultMeans(r, w.bn));
       if (rank === 0) top1++;
       else misses.push(`${w.bn} (${w.en}) → ${ranked[0].word} [${rank + 1}]`);
       if (rank >= 0 && rank < 3) top3++;
@@ -132,4 +132,17 @@ test("a held static sign is long enough to be segmented", () => {
   let got: SignFrame[] | null = null;
   for (const f of [...Array(5).fill(rest), ...signing, ...Array(10).fill(rest)]) got = seg.push(f) ?? got;
   assert.ok(got && got.length >= 10, `static sign segmented: ${got?.length}`);
+});
+
+test("words written with the same sign are reported together", () => {
+  const sign = { hands: "one", dominant: { shape: "fist", ext: "u", palm: "d" }, location: { site: "chest" }, actions: [{ kind: "move", dir: "d" }] };
+  const vocab: WordTemplate[] = [
+    { id: "a", bn: "স্কুল", signs: [sign] },
+    { id: "b", bn: "বিদ্যালয়", signs: [sign] },
+    { id: "c", bn: "x", signs: [{ ...sign, location: { site: "forehead" } }] },
+  ];
+  const ranked = scoreWords(signWord(vocab[0], 4), vocab);
+  assert.equal(ranked[0].word, "স্কুল");
+  assert.deepEqual(ranked[0].alsoMeans, ["বিদ্যালয়"]);
+  assert.equal(ranked.length, 2, "one entry per distinct sign");
 });

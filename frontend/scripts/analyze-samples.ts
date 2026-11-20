@@ -13,7 +13,7 @@ import { mean, rankShapes, shapeFeatures, type HandPoints, type Vec } from "../s
 import { bodyFrom, sitePosition, toBody } from "../src/lib/handsign/body.ts";
 import { scoreLetters, type LetterTemplate } from "../src/lib/handsign/letters.ts";
 import type { WordTemplate } from "../src/lib/handsign/motion.ts";
-import { scoreWords, type SignFrame, type WordScore } from "../src/lib/handsign/words.ts";
+import { resultMeans, scoreWords, type SignFrame, type WordScore } from "../src/lib/handsign/words.ts";
 
 interface Sample {
   id: number;
@@ -162,7 +162,7 @@ if (wordSamples.length) {
     const ranked: WordScore[] = scoreWords(frames, vocab);
     const r = addRow(rows, s.label);
     r.n++;
-    const rank = ranked.findIndex((x) => x.word === s.label);
+    const rank = ranked.findIndex((x) => resultMeans(x, s.label));
     if (rank === 0) r.correct++;
     else if (ranked[0]) r.wrong.set(ranked[0].word, (r.wrong.get(ranked[0].word) ?? 0) + 1);
     if (rank >= 0 && rank < 3) r.top3++;

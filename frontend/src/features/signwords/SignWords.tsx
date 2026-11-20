@@ -33,6 +33,7 @@ import {
   SignSegmenter,
   WORD_FEATURE_VERSION,
   WORD_PART_LABELS,
+  resultMeans,
   scoreWords,
   weakestWordPart,
   wordFeatureVector,
@@ -123,7 +124,8 @@ export function SignWords() {
       let ranked = scoreWords(frames, v);
       if (m) {
         const learned = wordModelScores(m, frames.map(wordFeatureVector));
-        ranked = ranked.map((r) => ({ ...r, score: 0.5 * r.score + 0.5 * (learned.get(r.word) ?? 0) })).sort((a, b) => b.score - a.score);
+        const p = (r: WordScore) => Math.max(learned.get(r.word) ?? 0, ...r.alsoMeans.map((w) => learned.get(w) ?? 0));
+        ranked = ranked.map((r) => ({ ...r, score: 0.5 * r.score + 0.5 * p(r) })).sort((a, b) => b.score - a.score);
       }
       setResult(ranked);
       if (!ranked.length) return;
@@ -131,8 +133,8 @@ export function SignWords() {
         announce(`${ranked[0].word}, ${EN.get(ranked[0].word) ?? ""}`);
         logUsage("signwords", "recognised", { word: ranked[0].word });
       } else if (md === "practise") {
-        const mine = ranked.find((r) => r.word === tg);
-        const ok = ranked[0].word === tg && (mine?.score ?? 0) >= 0.45;
+        const mine = ranked.find((r) => resultMeans(r, tg));
+        const ok = resultMeans(ranked[0], tg) && (mine?.score ?? 0) >= 0.45;
         announce(ok ? `Well done: that is ${tg}.` : `Not quite. Try ${tg} again.`);
         logUsage("signwords", "practice_attempt", { word: tg, ok });
       }
@@ -227,7 +229,7 @@ export function SignWords() {
   };
 
   const targetTemplate = vocab.find((t) => t.bn === target);
-  const targetScore = result?.find((r) => r.word === target);
+  const targetScore = result?.find((r) => resultMeans(r, target));
   const best = result?.[0];
   const live = tracker.status === "running" || simulate;
 
@@ -333,6 +335,11 @@ export function SignWords() {
                       {best.word}
                     </Typography>
                     <Typography variant="lead">{EN.get(best.word)}</Typography>
+                    {best.alsoMeans.length > 0 && (
+                      <Typography variant="body2" color="text.secondary">
+                        The same sign also means: <span lang="bn">{best.alsoMeans.join(", ")}</span>. Context tells them apart.
+                      </Typography>
+                    )}
                     {result!.slice(1, 3).map((s) => (
                       <Stack key={s.word} direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                         <Typography lang="bn" sx={{ width: 110 }}>
@@ -381,13 +388,13 @@ export function SignWords() {
                 {targetScore && targetTemplate ? (
                   <Stack spacing={1.5}>
                     <PartBars score={targetScore} labels={WORD_PART_LABELS} />
-                    {best?.word === target && targetScore.score >= 0.45 ? (
+                    {best && resultMeans(best, target) && targetScore.score >= 0.45 ? (
                       <Alert severity="success">
                         Well done! That is <span lang="bn">{target}</span>.
                       </Alert>
                     ) : (
                       <Alert severity="info">
-                        {best && best.word !== target && (
+                        {best && !resultMeans(best, target) && (
                           <>
                             That looked more like <span lang="bn">{best.word}</span>.{" "}
                           </>

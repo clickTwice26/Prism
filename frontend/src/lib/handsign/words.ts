@@ -63,7 +63,12 @@ export interface WordScore {
   id: string; // template id (a word can have several variants)
   score: number; // 0 to 1
   parts: Record<WordPart, number>;
+  /** Other words written with exactly the same sign: form alone cannot tell them apart. */
+  alsoMeans: string[];
 }
+
+/** Whether a result names a word, directly or as a word with the same sign. */
+export const resultMeans = (s: WordScore, word: string) => s.word === word || s.alsoMeans.includes(word);
 
 // ---- per-frame measurements, computed once per frame ----
 
@@ -147,7 +152,7 @@ function resample<T>(xs: T[], n: number): T[] {
 }
 
 /** Aligns frames to keyframes (each keyframe gets at least one frame, in order) and scores the result. */
-function align(ms: Measured[], keys: Keyframe[]): Omit<WordScore, "word" | "id"> {
+function align(ms: Measured[], keys: Keyframe[]): Omit<WordScore, "word" | "id" | "alsoMeans"> {
   const N = ms.length;
   const K = keys.length;
   const costs = ms.map((m) => keys.map((k) => frameCost(m, k)));
@@ -183,25 +188,81 @@ function align(ms: Measured[], keys: Keyframe[]): Omit<WordScore, "word" | "id">
   };
 }
 
+// ---- vocabularies: words that share a sign are scored once ----
+
+interface SignGroup {
+  rep: WordTemplate;
+  words: string[]; // every word written with this sign, in vocabulary order
+}
+
+const signKey = (w: WordTemplate) =>
+  JSON.stringify(w.signs.map((s) => ({ ...s, gaps: undefined })));
+
+const groupCache = new WeakMap<WordTemplate[], SignGroup[]>();
+
+/** Groups a vocabulary by identical sign description. Cached per vocabulary array. */
+function groupsOf(words: WordTemplate[]): SignGroup[] {
+  const hit = groupCache.get(words);
+  if (hit) return hit;
+  const byKey = new Map<string, SignGroup>();
+  for (const w of words) {
+    const k = signKey(w);
+    const g = byKey.get(k);
+    if (!g) byKey.set(k, { rep: w, words: [w.bn] });
+    else if (!g.words.includes(w.bn)) g.words.push(w.bn);
+  }
+  const out = [...byKey.values()];
+  groupCache.set(words, out);
+  return out;
+}
+
+/** Cheap first pass: how well the start and end of the signing fit a sign's first and last keyframes. Lower is better. */
+function quickCost(ms: Measured[], keys: Keyframe[]): number {
+  const third = Math.max(1, Math.floor(ms.length / 3));
+  const head = ms.slice(0, third);
+  const tail = ms.slice(-third);
+  const avgCost = (xs: Measured[], k: Keyframe) => xs.reduce((a, m) => a + frameCost(m, k).total, 0) / xs.length;
+  return avgCost(head, keys[0]) + avgCost(tail, keys[keys.length - 1]);
+}
+
 /**
- * Scores every word variant for a recorded signing, best first (one entry per
- * word, its best variant). Frames without the signing hand or the body are skipped.
+ * Scores the signs of a vocabulary for a recorded signing, best first. Words
+ * written with an identical sign are scored once and reported together
+ * (alsoMeans); a word with several variants keeps its best one. Large
+ * vocabularies are first narrowed with a cheap start-and-end check, then the
+ * best `shortlist` signs are aligned in full. Frames without the signing hand
+ * or the body are skipped.
  */
-export function scoreWords(frames: SignFrame[], words: WordTemplate[], maxFrames = 40): WordScore[] {
-  const ms = resample(smoothFrames(frames).map(measure).filter((m): m is Measured => m !== null), maxFrames);
+export function scoreWords(frames: SignFrame[], words: WordTemplate[], opts: { maxFrames?: number; shortlist?: number } = {}): WordScore[] {
+  const ms = resample(smoothFrames(frames).map(measure).filter((m): m is Measured => m !== null), opts.maxFrames ?? 40);
   if (ms.length < 3) return [];
   const body = ms[Math.floor(ms.length / 2)].body;
-  const best = new Map<string, WordScore>();
-  for (const w of words) {
-    const keys = wordKeyframes(w, body);
-    if (keys.length === 0) continue;
+  let candidates = groupsOf(words)
+    .map((g) => ({ g, keys: wordKeyframes(g.rep, body) }))
+    .filter((c) => c.keys.length > 0);
+  const shortlist = opts.shortlist ?? 120;
+  if (candidates.length > shortlist) {
+    candidates = candidates
+      .map((c) => ({ ...c, quick: quickCost(ms, c.keys) }))
+      .sort((a, b) => a.quick - b.quick)
+      .slice(0, shortlist);
+  }
+  const scored = candidates.map(({ g, keys }) => {
     // More keyframes than frames: thin the keyframes so every one can be matched.
     const k = keys.length > ms.length ? resample(keys, ms.length) : keys;
-    const r = align(ms, k);
-    const prev = best.get(w.bn);
-    if (!prev || r.score > prev.score) best.set(w.bn, { word: w.bn, id: w.id, ...r });
+    return { g, ...align(ms, k) };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  // One entry per sign; a word already named by a better sign is not repeated.
+  const named = new Set<string>();
+  const out: WordScore[] = [];
+  for (const s of scored) {
+    const fresh = s.g.words.filter((w) => !named.has(w));
+    if (fresh.length === 0) continue;
+    for (const w of fresh) named.add(w);
+    out.push({ word: fresh[0], id: s.g.rep.id, score: s.score, parts: s.parts, alsoMeans: fresh.slice(1) });
   }
-  return [...best.values()].sort((a, b) => b.score - a.score);
+  return out;
 }
 
 export function weakestWordPart(s: WordScore): WordPart {
