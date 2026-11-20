@@ -11,11 +11,13 @@ reference only. Do not copy code from them; write fresh code here.
 
 - `backend/`: Go API. `cmd/api` is the entrypoint; `internal/` holds `config`, `store` (Postgres +
   embedded SQL migrations), `cache` (Redis cache and rate limit), `ai` (prompts plus Gemini and OpenAI backends), `textkit`
-  (offline simplifier, reading level), `tts` (Piper), `live` (class relay over Redis pub/sub) and
-  `httpapi` (routes, handlers, middleware).
+  (offline simplifier, reading level), `tts` (Piper), `live` (class relay over Redis pub/sub),
+  `signref` (BdSL reference word list) and `httpapi` (routes, handlers, middleware).
 - `frontend/`: Next.js 16 App Router. `src/app` holds routes, `src/features/<area>` the screens,
   `src/components` shared UI, `src/lib` the API client, settings, theme and read-aloud hook.
-- `docs/`: architecture and API notes. Keep them in step with the code.
+- `docs/`: architecture and API notes. Keep them in step with the code. Sign language work follows
+  `docs/sign-language-plan.md`: people sign and deaf reviewers approve. Never add AI signing avatars
+  or generated signs.
 
 ## Commands
 

@@ -2,7 +2,7 @@
 
 **The same lesson, for every learner.** Prism takes the class every student sees and gives each
 child the form they can use. Blind learners hear it and get diagrams described. Deaf learners get
-live captions and a transcript. Learners with dyslexia read along as each word is highlighted.
+live captions, a transcript and the lesson's key words in Bangla Sign Language. Learners with dyslexia read along as each word is highlighted.
 Learners with intellectual disability or autism get a fact-checked simple version, a picture and
 quick questions.
 
@@ -12,14 +12,16 @@ Built for the International AI Builders Congress 2026, LearnSphere AI → AI Tea
 
 | Area | For | Features |
 | --- | --- | --- |
-| Adaptive lesson | Every learner | One short part at a time with a question; Prism keeps the supports (simple text, read-aloud, picture) that help *this* learner, measured by their answers |
+| Adaptive lesson | Every learner | One short part at a time with a question; Prism keeps the supports (simple text, read-aloud, picture, sign) that help *this* learner, measured by their answers |
 | Read & images | Blind, low vision, dyslexia | Read-aloud in Bangla, English and Malay with word highlighting; AI image descriptions at short or detailed length |
 | Simplify | Intellectual disability, autism, slow readers | Plain-language rewrite, automatic fact check against the original, side-by-side view for an adult, picture, comprehension quiz |
-| Live class | Deaf, hard of hearing, blind | Teacher camera or screen with live captions, translatable transcript, "What's on screen now?" description |
+| Live class | Deaf, hard of hearing, blind | Teacher camera or screen with live captions, translatable transcript, "What's on screen now?" description, and a remote sign interpreter in a window learners can move and resize |
+| Sign glossary | Deaf, hard of hearing; interpreters and deaf reviewers | Each lesson's key terms in Bangla Sign Language: AI finds the terms, people record 2-4 s clips, deaf reviewers approve every sign, and approved signs are linked wherever the word appears. Interpreter videos for whole lessons, and a missing-sign list for the community |
 | Review | Teachers | AI outputs that failed the automatic fact and agreement checks wait here; learners see only the safe version until a teacher approves |
 | Study | Teachers, researchers | Same task with and without Prism; compares comprehension, completion, time, SUS and satisfaction |
 
 The research behind these choices is in [docs/architecture.md](docs/architecture.md#research-behind-the-features).
+The plan for Bangla Sign Language support (Prism Sign) is in [docs/sign-language-plan.md](docs/sign-language-plan.md).
 
 ## Stack
 
@@ -67,7 +69,7 @@ docker compose --profile app up --build
 ```
 backend/    Go API: REST + live-class WebSocket
 frontend/   Next.js web app
-docs/       Architecture, API, design guide and research notes
+docs/       Architecture, API, design guide, sign language plan and research notes
 CLAUDE.md   Working rules for AI-assisted development
 ```
 
