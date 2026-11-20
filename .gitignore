@@ -25,3 +25,9 @@
 # python tools
 /ml/.venv/
 __pycache__/
+
+# promo video
+/video/node_modules/
+/video/out/
+/video/audio/
+/video/public/audio/
