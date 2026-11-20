@@ -11,6 +11,8 @@ Phase 1 is built in Prism (see [architecture.md](architecture.md#prism-sign)). P
 - **Community lexicon:** the Sign glossary page has lesson terms, a deaf review queue (named reviewers, approve or reject), missing signs and the lexicon. Signers name themselves, consent per clip and can withdraw a clip. Regional variants are kept side by side.
 - **Existing signs first:** missing-sign requests show when the IsharaKotha word list already documents the word. Only its word list is read; its avatar animations are not used.
 
+Next: recognising signs from their written description, without a large video dataset. See [sign-recognition-plan.md](sign-recognition-plan.md).
+
 Not built yet: **sign as an adaptive layer** (part 4 below). Prism's adaptive lessons, simplified text and study dashboard were removed to keep Prism to this plan, so part 4 and the per-child comprehension comparison need to be rebuilt for the Phase 2 pilot. Phase 0 work (partners, licences, interpreter rates, pilot schools) is still open, and there are no real signed clips yet.
 
 ## Summary

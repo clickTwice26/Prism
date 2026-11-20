@@ -25,7 +25,7 @@ calls and links live classes across API instances. The plan it implements is
 | `internal/store` | `pgx` pool, embedded SQL migrations under an advisory lock, all queries |
 | `internal/cache` | `Remember` JSON cache keyed by SHA-256 of the inputs; per-IP fixed-window rate limit. Redis errors never fail a request |
 | `internal/ai` | Key-term extraction and translation prompts on a pluggable `Backend`: Google Gemini (`gemini.go`, the default) or OpenAI (`openai.go`), chosen by `AI_PROVIDER` |
-| `internal/signref` | Reads the word list of an existing Bangla Sign Language corpus (IsharaKotha file names) so reviewers see when a term already has a documented sign |
+| `internal/signref` | Reads an existing Bangla Sign Language corpus (IsharaKotha): its word list, so reviewers see when a term already has a documented sign, and its HamNoSys descriptions, parsed into sign templates for recognition. `cmd/signtemplates` exports the templates and a coverage report |
 | `internal/live` | Live-class hub: WebSocket clients ↔ Redis pub/sub, with a second stream for the sign interpreter |
 | `internal/httpapi` | Routes, JSON helpers, sign uploads and media, CORS (configured origins plus localhost and private LAN), logging, panic recovery |
 
@@ -53,6 +53,7 @@ input, 429 when rate-limited, 503 when AI is not configured, 502 when the AI pro
 | GET | `/sign/lexicon` | → every term with an approved sign, with its clips (regional variants) |
 | GET | `/sign/missing` | → lesson terms with no approved sign, the lessons that need them and any `reference` dictionary entries |
 | GET | `/sign/reference?q=` | → `{size, matches}` from the reference word list |
+| GET | `/sign/templates?section=` · `?words=` | → documented signs broken into parts (handshape, orientation, location, actions) for recognition; a section or words is required. See [sign-recognition-plan.md](sign-recognition-plan.md) |
 | POST | `/sign/videos` | multipart `kind=term\|lesson, term_id\|lesson_id, signer, region, consent=yes, video` (WebM or MP4; term clips up to 15 MB) → video, status `pending` |
 | GET | `/sign/videos?status=pending\|approved\|rejected` · `/sign/videos/count` | → videos with `term_labels` or `lesson_title` · `{pending}` |
 | POST | `/sign/videos/{id}/approve` · `/reject` | `{reviewer, note}` → video; rejecting deletes the file |
