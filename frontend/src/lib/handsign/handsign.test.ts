@@ -9,6 +9,7 @@ import {
   featureVector,
   fingerDirection,
   palmDirection,
+  palmVector,
   rankShapes,
   shapeFeatures,
   toSignerFrame,
@@ -29,18 +30,27 @@ test("camera points become the signer's frame", () => {
   assert.ok(near[2] > 0, "closer to the camera is 'out', away from the body");
 });
 
+test("palm codes are relative to the finger direction, as in HamNoSys", () => {
+  const near = (a: number[] | null, b: number[]) => !!a && a.every((v, i) => Math.abs(v - b[i]) < 1e-9);
+  assert.ok(near(palmVector("o", "d"), [0, -1, 0]), "fingers forward: codes are as written");
+  assert.ok(near(palmVector("u", "d"), [0, 0, 1]), "fingers up, palm 'down': the palm faces forward");
+  assert.ok(near(palmVector("l", "l"), [0, 0, -1]), "fingers left, palm 'left': the palm faces the signer (জ্বর)");
+  assert.ok(near(palmVector("u", "l"), [-1, 0, 0]), "a sideways palm stays sideways when the fingers tilt up");
+});
+
 test("finger and palm directions come back as written", () => {
   const cases: [string, string, "right" | "left"][] = [
-    ["u", "o", "right"],
+    ["u", "d", "right"],
     ["o", "d", "right"],
-    ["l", "d", "right"],
+    ["l", "l", "right"],
     ["u", "r", "left"],
     ["o", "u", "left"],
+    ["ol", "d", "right"],
   ];
   for (const [ext, palm, side] of cases) {
     const h = makeHand({ shape: "flathand", ext, palm }, side);
     assert.ok(dot(fingerDirection(h), dirVector(ext)!) > 0.9, `fingers ${ext} (${side})`);
-    assert.ok(dot(palmDirection(h, side), dirVector(palm)!) > 0.9, `palm ${palm} (${side})`);
+    assert.ok(dot(palmDirection(h, side), palmVector(ext, palm)!) > 0.9, `palm ${palm} (${side})`);
   }
 });
 
@@ -137,4 +147,16 @@ test("a learned model gives probabilities that sum to 1", () => {
   const p = predict(m, [1, 5]);
   assert.ok(Math.abs(p.get("ক")! + p.get("খ")! - 1) < 1e-9);
   assert.ok(p.get("ক")! > 0.95);
+});
+
+test("instructions say where the palm really faces", async () => {
+  const { describeLetter } = await import("./describe.ts");
+  const t: LetterTemplate = {
+    id: "x",
+    bn: "x",
+    signs: [{ hands: "two", dominant: { shape: "flathand", ext: "l", palm: "l" }, nondominant: { shape: "fist", ext: "u", palm: "d" }, location: {} }],
+  };
+  const [dom, other] = describeLetter(t);
+  assert.match(dom.text, /fingers point to your left, palm faces toward you/);
+  assert.match(other.text, /fingers point up, palm faces away from you/);
 });

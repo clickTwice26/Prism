@@ -1,7 +1,10 @@
 // Plain-language descriptions of a letter's parts, for the practice coach.
 // "Signing hand" is the dominant hand; "other hand" is the one it touches.
 
+import { palmVector, type Vec } from "./hand.ts";
 import type { LetterTemplate, PartName, PoseTemplate } from "./letters.ts";
+import type { ActionT, WordTemplate } from "./motion.ts";
+import type { WordPart } from "./words.ts";
 
 const SHAPE_WORDS: Record<string, string> = {
   fist: "a fist",
@@ -29,9 +32,23 @@ const DIR_WORDS: Record<string, string> = {
   d: "down",
   l: "to your left",
   r: "to your right",
-  o: "forward",
+  o: "away from you",
   i: "toward you",
 };
+
+/** The nearest direction code for a vector in the signer's frame, e.g. [0, 0, -1] → "i". */
+function codeFor(v: Vec): string {
+  const parts: [number, string, string][] = [
+    [v[1], "u", "d"],
+    [v[0], "r", "l"],
+    [v[2], "o", "i"],
+  ];
+  return parts
+    .filter(([x]) => Math.abs(x) > 0.38)
+    .sort((a, b) => Math.abs(b[0]) - Math.abs(a[0]))
+    .map(([x, pos, neg]) => (x > 0 ? pos : neg))
+    .join("");
+}
 
 export function directionWords(code?: string): string {
   if (!code) return "";
@@ -79,7 +96,9 @@ export function shapeWords(p?: PoseTemplate): string {
 }
 
 function orientationWords(p?: PoseTemplate): string {
-  const parts = [p?.ext && `fingers point ${directionWords(p.ext)}`, p?.palm && `palm faces ${directionWords(p.palm)}`];
+  // HamNoSys palm codes are relative to the fingers: say where the palm really faces.
+  const palm = p?.palm ? palmVector(p.ext, p.palm) : null;
+  const parts = [p?.ext && `fingers point ${directionWords(p.ext)}`, palm && `palm faces ${directionWords(codeFor(palm))}`];
   return parts.filter(Boolean).join(", ");
 }
 
@@ -111,5 +130,104 @@ export function feedback(t: LetterTemplate, part: PartName): string {
       return `Turn your signing hand: ${orientationWords(s.dominant)}.`;
     case "otherDirection":
       return `Turn your other hand: ${orientationWords(s.nondominant)}.`;
+  }
+}
+
+// ---- words ----
+
+const SITE_WORDS: Record<string, string> = {
+  head: "the top of your head",
+  headtop: "the top of your head",
+  forehead: "your forehead",
+  eyebrows: "your eyebrows",
+  eyes: "your eyes",
+  nose: "your nose",
+  nostrils: "your nose",
+  ear: "your ear",
+  earlobe: "your ear",
+  cheek: "your cheek",
+  lips: "your mouth",
+  teeth: "your mouth",
+  tongue: "your mouth",
+  chin: "your chin",
+  underchin: "under your chin",
+  neck: "your neck",
+  shouldertop: "the top of your shoulder",
+  shoulders: "shoulder height, in front of you",
+  chest: "your chest",
+  stomach: "your stomach",
+  belowstomach: "below your stomach",
+  neutralspace: "the space in front of you",
+};
+
+export function siteWords(site?: string, side?: string): string {
+  const base = SITE_WORDS[site ?? ""] ?? "shoulder height, in front of you";
+  return side === "at" || side === "beside" ? `${base}, on your signing-hand side` : base;
+}
+
+function actionWords(a: ActionT): string | null {
+  const size = a.size === "large" ? " a long way" : a.size === "small" ? " a little" : "";
+  switch (a.kind) {
+    case "move":
+      return a.target?.site ? `move to ${siteWords(a.target.site)}` : `move ${directionWords(a.dir)}${size}`;
+    case "arc":
+      return `move in an arc ${directionWords(a.dir)}`;
+    case "circle":
+    case "ellipse":
+      return "make a small circle";
+    case "change":
+      return a.to?.shape ? `change your hand to ${shapeWords(a.to)}` : "turn your hand";
+    case "fingerplay":
+      return "wiggle your fingers";
+    case "swinging":
+    case "wavy":
+    case "zigzag":
+      return "swing your hand side to side";
+    case "nodding":
+      return "bend your wrist up and down";
+    case "twisting":
+      return "twist your wrist";
+    case "stir":
+      return "make a stirring movement";
+    default:
+      return null; // hold
+  }
+}
+
+/** Step-by-step instructions for a word, one entry per sign. */
+export function describeWord(t: WordTemplate): { label: string; text: string }[] {
+  return t.signs.flatMap((s, i) => {
+    const n = t.signs.length > 1 ? ` (part ${i + 1})` : "";
+    const steps = s.actions.map(actionWords).filter((x): x is string => !!x);
+    const repeat = s.repeat === "again" ? " Do it twice." : s.repeat === "several" ? " Repeat it a few times." : "";
+    const out = [
+      { label: `Signing hand${n}`, text: `${shapeWords(s.dominant)}; ${orientationWords(s.dominant)}.` },
+      { label: `Start${n}`, text: `At ${siteWords(s.location.site, s.location.side)}.` },
+    ];
+    if (s.hands !== "one" && s.hands !== "nondominant") {
+      const how = s.hands === "two_mirror" ? " It mirrors your signing hand." : s.hands === "two_parallel" ? " It moves with your signing hand." : "";
+      out.push({ label: `Other hand${n}`, text: `${shapeWords(s.nondominant ?? s.dominant)}.${how}` });
+    }
+    out.push({ label: `Movement${n}`, text: steps.length ? `${steps.join(", then ")}.${repeat}` : `Hold still.${repeat}` });
+    return out;
+  });
+}
+
+/** One sentence telling the learner how to fix a part of a word. */
+export function wordFeedback(t: WordTemplate, part: WordPart): string {
+  const s = t.signs[0];
+  switch (part) {
+    case "handshape":
+      return `Make your signing hand ${shapeWords(s.dominant)}.`;
+    case "location":
+      return `Start at ${siteWords(s.location.site, s.location.side)}.`;
+    case "movement": {
+      const steps = s.actions.map(actionWords).filter((x): x is string => !!x);
+      return steps.length ? `Then ${steps.join(", then ")}.` : "Keep your hand still in place.";
+    }
+    case "direction":
+      return `Turn your signing hand: ${orientationWords(s.dominant)}.`;
+    case "otherHand":
+      return s.hands === "one" ? "Keep your other hand down." : `Use your other hand too: ${shapeWords(s.nondominant ?? s.dominant)}.`;
   }
 }
