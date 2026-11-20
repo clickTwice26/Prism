@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math"
 	"net/http"
-	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -24,6 +23,7 @@ type sampleHand struct {
 type sampleFrame struct {
 	T     float64      `json:"t"` // ms since the sample started
 	Hands []sampleHand `json:"hands"`
+	Body  [][3]float64 `json:"body,omitempty"` // 33 pose points, for signs placed on the body
 }
 
 func finite(xs ...float64) bool {
@@ -59,7 +59,7 @@ func (s *Server) createSignSample(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	in.Label = strings.TrimSpace(in.Label)
+	in.Label = store.CleanLabel(in.Label)
 	signer, ok := shortText(in.Signer, 80)
 	switch {
 	case in.Kind != "letter" && in.Kind != "handshape" && in.Kind != "word":
@@ -70,6 +70,9 @@ func (s *Server) createSignSample(w http.ResponseWriter, r *http.Request) {
 		return
 	case in.Kind == "letter" && len(s.signRef.Templates("Letters", []string{in.Label})) == 0:
 		writeError(w, http.StatusUnprocessableEntity, "unknown letter")
+		return
+	case in.Kind == "word" && len(s.signRef.Templates("", []string{in.Label})) == 0:
+		writeError(w, http.StatusUnprocessableEntity, "unknown word: it has no documented sign")
 		return
 	case !ok:
 		writeError(w, http.StatusUnprocessableEntity, "signer name is required (1-80 characters)")
@@ -95,6 +98,16 @@ func (s *Server) createSignSample(w http.ResponseWriter, r *http.Request) {
 		if len(f.Hands) > 2 || !finite(f.T) {
 			writeError(w, http.StatusUnprocessableEntity, "each frame has at most two hands")
 			return
+		}
+		if len(f.Body) != 0 && len(f.Body) != 33 {
+			writeError(w, http.StatusUnprocessableEntity, "body needs 33 points")
+			return
+		}
+		for _, p := range f.Body {
+			if !finite(p[0], p[1], p[2]) {
+				writeError(w, http.StatusUnprocessableEntity, "points must be finite numbers")
+				return
+			}
 		}
 		for _, h := range f.Hands {
 			if len(h.Points) != 21 || (h.Side != "left" && h.Side != "right") {
