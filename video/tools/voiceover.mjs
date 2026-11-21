@@ -105,8 +105,20 @@ clips.forEach((c) => args.push("-i", c.file));
 const filters = clips.map((c, k) => `[${k + 1}]adelay=${Math.round(c.start * 1000)}[d${k}]`);
 const inputs = ["[0]", ...clips.map((_, k) => `[d${k}]`)].join("");
 filters.push(`${inputs}amix=inputs=${clips.length + 1}:normalize=0,atrim=0:${TOTAL_SECONDS}[out]`);
-args.push("-filter_complex", filters.join(";"), "-map", "[out]", "-ar", "48000", "-ac", "2", join(ROOT, "public", "audio", "voice.wav"));
+const RAW = join(TMP, "voice-raw.wav");
+args.push("-filter_complex", filters.join(";"), "-map", "[out]", "-ar", "48000", "-ac", "2", RAW);
 execFileSync("ffmpeg", args);
+
+// Bring the speech to about -16 LUFS (takes from TTS tools are often far quieter), with a limiter
+// so no peak goes above -1 dBFS. Integrated loudness is gated, so the gaps between lines don't count.
+const TARGET_LUFS = -16;
+const measured = (() => {
+  const out = execFileSync("sh", ["-c", `ffmpeg -hide_banner -i "${RAW}" -af ebur128 -f null - 2>&1 | grep -E "^\\s+I:" | tail -1`]).toString();
+  return Number(out.match(/-?[\d.]+/)[0]);
+})();
+const gain = (TARGET_LUFS - measured).toFixed(1);
+execFileSync("ffmpeg", ["-y", "-v", "error", "-i", RAW, "-af", `volume=${gain}dB,alimiter=limit=0.89:attack=5:release=50:level=false`, "-ar", "48000", "-ac", "2", join(ROOT, "public", "audio", "voice.wav")]);
+console.log(`Voice measured ${measured} LUFS; applied ${gain} dB.`);
 
 writeFileSync(join(ROOT, "src", "timings.json"), JSON.stringify({ chunks, warnings }, null, 2) + "\n");
 warnings.forEach((w) => console.warn("WARNING:", w));
