@@ -196,27 +196,46 @@ Use the best source available for each shot, and record which one in `video/CRED
 The first story shot also carries a lower-left line for 3 s: "Mitu is a composite character based on
 the reports in this film."
 
-### Report screenshots (proof the problem is real)
+### Report screenshots: Bangladesh's national newspapers
 
-Use the built-in browser to open each source and screenshot its real headline and the sentence that
-supports our claim. Never retype, edit or invent a headline or quote; if a page won't open or doesn't
-say what we claim, drop it and tell me. Save the files to `video/public/reports/` with a
-`sources.md` listing title, publisher, date and URL.
+The proof that the problem is real comes from **Bangladesh's national newspapers**, in English and
+Bangla, so judges see the country's own press reporting it. Use the built-in browser to open each
+article and take a clean screenshot of its masthead, headline, date and the one sentence that backs
+our claim. Never retype, edit, translate inside the image or invent a headline or quote. If a page
+won't open or no longer says what is listed below, drop it and tell me. Save the files to
+`video/public/reports/` with a `sources.md` listing headline, newspaper, date, author and URL.
 
-| Claim in the video | Source to capture (from `docs/sign-language-plan.md`) |
-| --- | --- |
-| 9.6% disabling hearing loss; BdSL as a first language by law | The Business Standard, "When silence has language" (tbsnews.net) |
-| BdSL official since 2009; deaf adults ask for education in BdSL | Khan, 2026, FASAL proceedings (reed.edu PDF): title page plus the highlighted sentence |
-| Deaf people's wellbeing and BdSL access | Monash University news article on BdSL and mental wellbeing |
-| Largest public BdSL word dataset: 60 words | Rubaiyeat et al., 2025: paper title and abstract line |
-| Captions plus sign raise comprehension | Debevc et al., 2015: title and result line |
-| Deaf communities distrust avatar translators | Coy et al., 2024: title and finding |
-| About 70 million deaf people use sign languages | World Federation of the Deaf website |
+These articles were checked on 2026-11-21 and say what is listed. Prefer the newest ones; show the
+date on every card so older articles read as background, not as today's news.
 
-You may add one or two more reports only if they are from a reputable publisher, you read the page,
-and the claim is cited on screen. Show a card for about 2–3 s each, at most two at once, with the
-publisher's name and date always readable. Blur nothing that changes the meaning; crop out ads and
-cookie banners.
+| # | Newspaper, date | Headline (link) | Sentence to highlight | Use it in |
+| --- | --- | --- | --- | --- |
+| 1 | The Business Standard, 15 Oct 2026 | [Giving words to the depressed deaf](https://www.tbsnews.net/features/panorama/giving-words-depressed-deaf-1573366) | "Dip estimates that Bangladesh has only about 30 accredited sign-language interpreters nationwide." | Problem: too few interpreters |
+| 2 | The Business Standard, 15 Oct 2026 | (same article) | "…an estimated 13.7 million people with hearing loss in Bangladesh." | Problem: who and how many |
+| 3 | The Business Standard, 23 Sep 2026 | [When silence has a language](https://www.tbsnews.net/features/when-silence-has-language-1548956) | "…disabling hearing loss among 9.6%…" (2013 national survey) and "…the need for trained teachers…" | Problem: urgency |
+| 4 | Prothom Alo (প্রথম আলো), 23 Sep 2026 | [ইশারা ভাষার মানুষকে নীরব করে রাখবেন না](https://www.prothomalo.com/opinion/column/jp2tb8zn2j) | The headline itself ("Do not keep sign-language people silent"), with the English translation as a small subtitle under the card | Problem: Bangla press, opening the section |
+| 5 | The Business Standard, 22 Mar 2023 | [A Khulna school that helps differently-abled kids bloom](https://www.tbsnews.net/bangladesh/education/khulna-school-helps-differently-abled-kids-bloom-603746) | "…there are not many words in the sign language books…" (a teacher) | Problem: no signs for subject words |
+| 6 | The Business Standard, 9 Jun 2023 | [Dhaka Government Deaf High School: Unheard, unseen and forgotten](https://www.tbsnews.net/bangladesh/dhaka-government-deaf-high-school-unheard-unseen-and-forgotten-646802) | "Many parents complain that sign language is not taught in the school." | Problem: Mitu's classroom |
+| 7 | bdnews24.com (বাংলা), 20 Feb 2022 | [বাংলা ইশারা ভাষা ইনস্টিটিউট: উপেক্ষিত শ্রবণ প্রতিবন্ধী মানুষের প্রতিনিধিত্ব](https://bangla.bdnews24.com/opinion/comment/68623) | "২০০৯ সালের ১ ফেব্রুয়ারি … বাংলা ইশারা ভাষা চালুর ঘোষণা দেন।" (BdSL declared on 1 February 2009) | Problem: official since 2009 |
+| 8 | The Daily Star, 3 Nov 2023 | [How sign language can bring about change](https://www.thedailystar.net/opinion/readers-voice/news/how-sign-language-can-bring-about-change-3459951) | "In Bangladesh, February 7 is observed as Bangla Sign Language Day." | Optional: Solution or Impact |
+
+Notes:
+
+- Article 1's interpreter count is one researcher's estimate. Show it as "an estimated ~30
+  accredited interpreters" with the source, never as an official figure.
+- Article 4 is an opinion column by a BTV sign-language news presenter; label the card "Opinion".
+- Article 8 is a reader's opinion piece; use it only if there is room, labelled "Opinion".
+- Don't use the older figure "30 lakh hearing-impaired people" (The Daily Star, 2014); article 2's
+  newer figure replaces it.
+- The global figure (about 70 million deaf people use sign languages) stays on a small card from the
+  World Federation of the Deaf website.
+
+For the AI approach section only, one research card is allowed: Rubaiyeat et al., 2025 (the largest
+public word-level BdSL dataset has 60 words), from `docs/sign-language-plan.md`.
+
+Show a card for about 2–3 s, at most two at once, with the newspaper's masthead and date always
+readable. Bangla cards get a small English subtitle under them. Crop out ads, cookie banners and
+unrelated headlines; blur nothing that changes the meaning.
 
 ## How to build it
 
@@ -287,13 +306,15 @@ Each part lists what is on screen and the voiceover (VO). The VO is also the cap
 **0:10–0:30 · Why it matters**
 
 - **Screen:** the classroom shot darkens and blurs behind the graphics. As the VO gives each fact,
-  its **report card** slides in over the shot: The Business Standard ("When silence has language",
-  the 9.6% line highlighted), Khan 2026 (the "official since 2009" and "not just oralist methods"
-  lines), then the World Federation of the Deaf page (70 million). Between cards, a 2 s cutaway:
+  its **newspaper card** slides in over the shot, in this order: Prothom Alo's headline
+  "ইশারা ভাষার মানুষকে নীরব করে রাখবেন না" (#4), bdnews24 on BdSL declared in 2009 (#7), The
+  Business Standard on ~30 accredited interpreters and 13.7 million people with hearing loss (#1,
+  #2), the Khulna school teacher on missing words (#5), then the small World Federation of the Deaf
+  card (70 million). Between cards, a 2 s cutaway:
   Mitu on the veranda after school while Rahima talks to her and Mitu can't follow. Then kicker
   `THE PROBLEM · সমস্যা`. Headline: **"The lesson is spoken.
   Her language is signed."** Three cards, staggered:
-  - ⏱ **Too few interpreters** · "Most classes have none; nobody even counts them"
+  - ⏱ **Too few interpreters** · "An estimated ~30 accredited, nationwide (TBS, 2026)"
   - 📖 **No signs for subject words** · "Science terms are missing from BdSL"
   - 🔎 **Signs are hard to find** · "No tool puts them where the child is reading"
   - **Who:** a row of chips: "Deaf learners · Hearing parents · Teachers · Sign interpreters".
@@ -462,8 +483,9 @@ mockup on the left, rows on the right, real screenshots throughout.
   3,600 documented signs, 9.6% (2013 survey), BdSL official since 2009, the largest public BdSL
   word dataset 60 words, pilot January to June 2027, pilot targets 90% coverage and 4 of 5
   satisfaction.
-- The global figure (about 70 million deaf people use sign languages, World Federation of the
-  Deaf) is the only number from outside the docs. Cite it on screen.
+- Numbers from outside the docs must come from the newspaper table above or the World Federation
+  of the Deaf (about 70 million), each cited on screen with newspaper and date: ~30 accredited
+  interpreters (an estimate), 13.7 million people with hearing loss.
 
 ## What to give me at the end
 
