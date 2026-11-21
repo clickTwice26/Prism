@@ -24,7 +24,7 @@ export const ClassroomScene: React.FC<P> = ({ T }) => {
   const a = cue("class").start - 0.1;
   const b = cue("deaf").start - 0.1;
   const mid = (a + b) / 2 + 0.2;
-  const first = 1 - prog(T, a - 0.3, 0.6);
+  const first = 1 - prog(T, a - 0.1, 0.2);
   return (
     <AbsoluteFill>
       {first > 0 && (
@@ -33,17 +33,17 @@ export const ClassroomScene: React.FC<P> = ({ T }) => {
         </AbsoluteFill>
       )}
       {T > a - 0.4 && T < mid + 0.4 && (
-        <AbsoluteFill style={{ opacity: shotOpacity(T, a, mid) }}>
+        <AbsoluteFill style={{ opacity: shotOpacity(T, a, mid, 0.1) }}>
           <StoryShot T={T} shot="S01-classroom-wide" start={a - 0.3} dur={2.2} from={1.02} to={1.08} focus={[40, 45]} tag={false} />
         </AbsoluteFill>
       )}
       {T > mid - 0.4 && T < b + 0.4 && (
-        <AbsoluteFill style={{ opacity: shotOpacity(T, mid, b) }}>
+        <AbsoluteFill style={{ opacity: shotOpacity(T, mid, b, 0.1) }}>
           <StoryShot T={T} shot="S02-teacher-board" start={mid - 0.3} dur={2} from={1.03} to={1.08} focus={[60, 35]} tag={false} />
         </AbsoluteFill>
       )}
       {T > b - 0.4 && (
-        <AbsoluteFill style={{ opacity: prog(T, b - 0.35, 0.7) }}>
+        <AbsoluteFill style={{ opacity: prog(T, b - 0.1, 0.2) }}>
           <StoryShot T={T} shot="S03-mitu-close" start={b - 0.3} dur={4.4} from={1.04} to={1.2} focus={[52, 38]} tag={false} />
         </AbsoluteFill>
       )}
@@ -617,7 +617,7 @@ export const CloseScene: React.FC<P> = ({ T }) => {
       {/* Weeks later: Mitu answers, then Mitu and Rahima together */}
       {classIn > 0 && endIn < 1 && (
         <AbsoluteFill style={{ opacity: classIn * (1 - endIn) }}>
-          <AbsoluteFill style={{ opacity: 1 - prog(T, split - 0.35, 0.7) }}>
+          <AbsoluteFill style={{ opacity: 1 - prog(T, split - 0.1, 0.2) }}>
             <StoryShot T={T} shot="S09-mitu-raises-hand" start={tag.start - 0.4} dur={3.6} from={1.04} to={1.12} focus={[58, 45]} tag={false}>
               <div style={{ position: "absolute", left: 600, top: 650, ...rise(T, tag.start + 0.4, 20), fontFamily: FONT, background: "rgba(23,27,35,0.92)", border: `2px solid ${C.orange}`, borderRadius: 16, padding: "12px 18px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
                 <div style={{ width: 44, height: 44, borderRadius: 22, background: C.orange, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -631,7 +631,7 @@ export const CloseScene: React.FC<P> = ({ T }) => {
             </StoryShot>
           </AbsoluteFill>
           {T > split - 0.4 && (
-            <AbsoluteFill style={{ opacity: prog(T, split - 0.35, 0.7) }}>
+            <AbsoluteFill style={{ opacity: prog(T, split - 0.1, 0.2) }}>
               <StoryShot T={T} shot="S10-together" start={split - 0.3} dur={3.6} from={1.03} to={1.1} focus={[62, 45]} tag={false} />
             </AbsoluteFill>
           )}
