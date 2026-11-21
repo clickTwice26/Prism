@@ -23,6 +23,7 @@ carries its "Preview" label.
 | `tools/voiceover.mjs` | Builds `public/audio/voice.wav` and `src/timings.json` |
 | `tools/music.mjs` | Writes the music bed (`public/audio/music.wav`), composed in code |
 | `tools/render.mjs` | Renders the MP4 with chapters, `.srt`, `.vtt`, `chapters.txt`, thumbnail and contact sheet |
+| `tools/press.mjs` | Captures the national newspaper articles (headline and highlighted sentence) into `public/press/` |
 | `tools/stills.mjs` | Renders check frames (`node tools/stills.mjs 12.5 64 140`) |
 | `voiceover.txt` | The narration as plain text |
 
@@ -30,6 +31,7 @@ carries its "Preview" label.
 
 ```bash
 npm install
+node tools/press.mjs # newspaper screenshots for the Problem section (git-ignored; re-run after cloning)
 npm run vo          # voice track + caption timings (after editing script.ts or swapping voice files)
 node tools/music.mjs  # only needed once (or after deleting public/audio/)
 npm run render      # out/Prism_Sign_Promo_Final.mp4 and the other deliverables
