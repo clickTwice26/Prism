@@ -19,8 +19,12 @@
   - The Business Standard, "A Khulna school that helps differently-abled kids bloom", TBS Report,
     22 Mar 2023
 - **Fonts:** Onest and Noto Sans Bengali, from Google Fonts, under the SIL Open Font License 1.1.
-- **Illustrations and UI mocks:** drawn for this video as SVG and HTML. No stock photos and no
-  photos or AI-generated faces of real people.
+- **Story photos (people):** AI-generated with Google Gemini from `video/people/prompts.md`
+  (full-size originals in `video/people/`, git-ignored; resized copies in `public/people/`).
+  Mitu, Rahima and Mr Karim are fictional; Mitu is a composite based on the newspaper reports.
+  Every shot carries "Dramatisation · AI-generated" and none shows signing.
+- **UI mocks and diagrams:** drawn for this video as SVG and HTML. No stock photos and no photos
+  of real people.
 - **Facts on screen:** from `docs/sign-language-plan.md`, `docs/architecture.md`,
   `docs/sign-recognition-plan.md` and the newspaper articles above. The worldwide figure ("about
   70 million deaf people use sign languages") is from the World Federation of the Deaf.
