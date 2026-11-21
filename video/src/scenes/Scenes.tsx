@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Img, staticFile } from "remotion";
 import { C, FONT, FONT_BN } from "../theme";
 import { COPY, SECTIONS } from "../script";
 import { BnLine, Chip, FeatureRow, Headline, IconTile, Kicker, Laptop, Phone, cue, fade, lerp, prog, rise } from "../components/ui";
@@ -52,10 +52,102 @@ export const ClassroomScene: React.FC<P> = ({ T }) => {
   );
 };
 
+// Newspaper montage: real articles from Bangladesh's national press, captured unedited by
+// tools/press.mjs (the orange highlight is a background colour added on the page before capture).
+const pressEnd = () => cue("few").end + 0.35;
+
+const PressCard: React.FC<{ card: (typeof COPY.press.cards)[number]; life: number }> = ({ card, life }) => {
+  const bn = card.id === "prothomalo" || card.id === "bdnews24";
+  return (
+    <div
+      style={{
+        width: 850,
+        background: "#fbfaf7",
+        borderRadius: 16,
+        overflow: "hidden",
+        boxShadow: "0 30px 80px rgba(0,0,0,0.55), 0 4px 14px rgba(0,0,0,0.35)",
+        transform: `scale(${1 + life * 0.025})`,
+        transformOrigin: "50% 40%",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 26px", background: "#11151c", fontFamily: FONT }}>
+        <span style={{ fontSize: 24, fontWeight: 800, color: "#fff", letterSpacing: "-0.01em" }}>{card.paper}</span>
+        {"bnPaper" in card && card.bnPaper ? (
+          <span lang="bn" style={{ fontFamily: FONT_BN, fontSize: 21, color: C.text2 }}>
+            {card.bnPaper}
+          </span>
+        ) : null}
+        <span style={{ marginLeft: "auto", fontSize: 19, color: C.text2 }}>{card.date}</span>
+        {"label" in card && card.label ? (
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#11151c", background: C.orange, borderRadius: 8, padding: "3px 10px", letterSpacing: "0.04em" }}>{card.label}</span>
+        ) : null}
+      </div>
+      <div style={{ padding: "14px 4px 0" }}>
+        <Img src={staticFile(`press/${card.id}-head.png`)} style={{ width: "100%", display: "block", maxHeight: 210, objectFit: "contain", objectPosition: "left top" }} />
+      </div>
+      {"en" in card && card.en ? (
+        <div style={{ fontFamily: FONT, fontSize: 19, fontStyle: "italic", color: "#535a6b", padding: "2px 28px 4px", lineHeight: 1.35 }}>{card.en}</div>
+      ) : null}
+      <div style={{ height: 2, background: "rgba(20,22,31,0.08)", margin: "10px 28px 0" }} />
+      <div
+        style={{
+          padding: "6px 4px 0",
+          maxHeight: bn ? 250 : 290,
+          overflow: "hidden",
+          WebkitMaskImage: "linear-gradient(#000 78%, transparent)",
+          maskImage: "linear-gradient(#000 78%, transparent)",
+        }}
+      >
+        <Img src={staticFile(`press/${card.id}-quote.png`)} style={{ width: "100%", display: "block" }} />
+      </div>
+    </div>
+  );
+};
+
+const PressMontage: React.FC<P> = ({ T }) => {
+  const P = COPY.press;
+  const end = pressEnd();
+  const arrive = P.cards.map((c) => cue(c.at).start + c.delay);
+  const out = 1 - prog(T, end - 0.25, 0.5);
+  if (out <= 0) return null;
+  return (
+    <AbsoluteFill style={{ opacity: out }}>
+      <div style={{ position: "absolute", left: 100, top: 150 }}>
+        <Kicker text={P.kicker} bn={P.bn} style={rise(T, arrive[0] - 0.2, 16)} />
+      </div>
+      {P.cards.map((c, i) => {
+        const next = P.cards.findIndex((d, j) => j > i && d.slot === c.slot);
+        const leaveAt = next >= 0 ? arrive[next] - 0.1 : end;
+        const pin = prog(T, arrive[i], 0.7);
+        const pout = next >= 0 ? prog(T, leaveAt, 0.5) : 0;
+        if (pin <= 0 || pout >= 1) return null;
+        const x = c.slot === 0 ? 90 : 980;
+        const rot = (c.slot === 0 ? -1.3 : 1.1) * (1 - pout);
+        const life = Math.max(0, Math.min(1, (T - arrive[i]) / 6));
+        return (
+          <div
+            key={c.id}
+            style={{
+              position: "absolute",
+              left: x,
+              top: 232,
+              opacity: pin * (1 - pout),
+              transform: `translateY(${(1 - pin) * 70 - pout * 40}px) rotate(${rot}deg) scale(${1 - pout * 0.06})`,
+              zIndex: i,
+            }}
+          >
+            <PressCard card={c} life={life} />
+          </div>
+        );
+      })}
+    </AbsoluteFill>
+  );
+};
+
 export const WhyScene: React.FC<P> = ({ T }) => {
-  const sc = scene("why");
   const p = COPY.problem;
-  const cardAt = [cue("few").start - 0.2, cue("few").start + 0.6, cue("few").start + 1.4];
+  const B = pressEnd(); // the summary layout builds after the newspaper montage
+  const cardAt = [B + 0.15, B + 0.45, B + 0.75];
   const statsAt = cue("global").start;
   return (
     <AbsoluteFill>
@@ -63,13 +155,14 @@ export const WhyScene: React.FC<P> = ({ T }) => {
         <Classroom t={T} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "rgba(15,18,24,0.80)" }} />
-      <div style={{ position: "absolute", left: 100, top: 150, width: 1720 }}>
-        <Kicker text={section("problem").kicker} bn={section("problem").bn} style={rise(T, sc.start + 0.2, 16)} />
+      <PressMontage T={T} />
+      <div style={{ position: "absolute", left: 100, top: 150, width: 1720, opacity: prog(T, B - 0.1, 0.4) }}>
+        <Kicker text={section("problem").kicker} bn={section("problem").bn} style={rise(T, B, 16)} />
         <div style={{ display: "flex", alignItems: "flex-end", gap: 60, marginTop: 18 }}>
-          <div style={rise(T, sc.start + 0.35)}>
+          <div style={rise(T, B + 0.05)}>
             <Headline text={p.headline} size={64} />
           </div>
-          <BnLine text={p.headlineBn} size={30} style={{ ...rise(T, sc.start + 0.6), marginBottom: 6 }} />
+          <BnLine text={p.headlineBn} size={30} style={{ ...rise(T, B + 0.2), marginBottom: 6 }} />
         </div>
         <div style={{ display: "flex", gap: 24, marginTop: 34 }}>
           {p.cards.map((c, i) => (
@@ -82,7 +175,7 @@ export const WhyScene: React.FC<P> = ({ T }) => {
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 26, ...rise(T, cue("spoken").start, 12) }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 26, ...rise(T, B + 1.0, 12) }}>
           <span style={{ fontFamily: FONT, fontSize: 20, fontWeight: 700, color: C.text2, letterSpacing: "0.12em", marginRight: 6 }}>WHO IT'S FOR</span>
           {p.who.map((w) => (
             <Chip key={w} tone="blue">
@@ -96,7 +189,7 @@ export const WhyScene: React.FC<P> = ({ T }) => {
               key={s.big}
               style={{
                 flex: i === 2 ? 1.25 : 1,
-                ...rise(T, i < 2 ? cue("official").start + i * 0.3 : statsAt + 0.3, 20),
+                ...rise(T, i < 2 ? B + 1.3 + i * 0.3 : statsAt + 0.3, 20),
                 borderRadius: 18,
                 padding: "16px 22px",
                 background: i === 2 ? "rgba(51,70,211,0.22)" : "rgba(23,27,35,0.92)",

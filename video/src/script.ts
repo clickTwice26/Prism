@@ -225,20 +225,33 @@ export const COPY = {
     headline: "The lesson is spoken.\nHer language is signed.",
     headlineBn: "পাঠ মুখে বলা হয়, কিন্তু তার ভাষা ইশারা।",
     cards: [
-      { icon: "clock", title: "Too few interpreters", text: "Most classes have none; nobody even counts them" },
-      { icon: "book", title: "No signs for subject words", text: "Science terms are missing from BdSL" },
+      { icon: "clock", title: "Too few interpreters", text: "An estimated ~30 accredited, nationwide (TBS, 2026)" },
+      { icon: "book", title: "No signs for subject words", text: "“Not many words in the sign language books” (TBS)" },
       { icon: "search", title: "Signs are hard to find", text: "No tool puts them where the child is reading" },
     ],
     who: ["Deaf learners", "Hearing parents", "Teachers", "Sign interpreters"],
     bdStats: [
       { big: "9.6%", text: "of people surveyed had disabling hearing loss", source: "2013 national survey (TBS, 2026)" },
-      { big: "2009", text: "Bangla Sign Language became an official language", source: "Khan, 2026" },
+      { big: "2009", text: "Bangla Sign Language became an official language", source: "bdnews24.com, 2022" },
     ],
     worldStat: {
       big: "~70 million",
       text: "deaf people worldwide use sign languages",
       source: "World Federation of the Deaf",
     },
+  },
+  press: {
+    kicker: "IN THE NATIONAL PRESS",
+    bn: "জাতীয় সংবাদমাধ্যমে",
+    // Real articles captured by tools/press.mjs into public/press/. `at` is the voiceover line
+    // the card arrives on; `slot` is 0 (left) or 1 (right).
+    cards: [
+      { id: "prothomalo", paper: "Prothom Alo", bnPaper: "প্রথম আলো", date: "23 Sep 2026", label: "Opinion", en: "“Do not keep sign-language people silent”", at: "official", delay: -0.3, slot: 0 },
+      { id: "bdnews24", paper: "bdnews24.com", bnPaper: "বিডিনিউজ২৪", date: "20 Feb 2022", label: "Opinion", en: "Highlighted: on 1 February 2009, Bangla Sign Language was declared at state level", at: "official", delay: 1.0, slot: 1 },
+      { id: "tbs-school", paper: "The Business Standard", date: "9 Jun 2023", at: "spoken", delay: 0, slot: 0 },
+      { id: "tbs-interpreters", paper: "The Business Standard", date: "15 Oct 2026", at: "few", delay: -0.1, slot: 1 },
+      { id: "tbs-khulna", paper: "The Business Standard", date: "22 Mar 2023", at: "few", delay: 2.1, slot: 0 },
+    ],
   },
   solution: {
     headline: "The same lesson, in\nBangla Sign Language.",

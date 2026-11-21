@@ -12,11 +12,11 @@ const X = 0.3; // crossfade half-length, seconds
 
 const spans = Object.values(timings.chunks as Record<string, { start: number; end: number }>);
 
-/** Music volume: -10 dB with no voice, ducked to -18 dB under the voice. */
+/** Music volume: -6 dB with no voice, ducked to -14 dB under the voice (music track is at about -15 LUFS, voice at -16). */
 const musicVolume = (f: number) => {
   const t = f / FPS;
   const near = spans.some((s) => t > s.start - 0.4 && t < s.end + 0.6);
-  const base = near ? 0.126 : 0.316;
+  const base = near ? 0.2 : 0.5;
   const fadeOut = Math.min(1, (TOTAL_SECONDS - t) / 3);
   return base * Math.max(0, fadeOut);
 };
