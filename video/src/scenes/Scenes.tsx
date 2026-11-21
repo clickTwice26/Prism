@@ -4,8 +4,7 @@ import { C, FONT, FONT_BN } from "../theme";
 import { COPY, SECTIONS } from "../script";
 import { BnLine, Chip, FeatureRow, Headline, IconTile, Kicker, Laptop, Phone, cue, fade, lerp, prog, rise } from "../components/ui";
 import { Icon } from "../components/Icons";
-import { Classroom, MITU } from "../illus/Classroom";
-import { HomeScene } from "../illus/People";
+import { CompositeNote, DramaTag, LowerThird, StoryShot, shotOpacity } from "../components/Story";
 import { DictionaryScreen, FingerspellScreen, HomeScreen, LessonScreen, LiveScreen, MobileLesson, SignWordsScreen } from "../mocks/Screens";
 
 type P = { T: number }; // absolute time in seconds
@@ -20,33 +19,38 @@ const TopShade: React.FC = () => (
 // ---- 1. Problem ---------------------------------------------------------------------
 
 export const ClassroomScene: React.FC<P> = ({ T }) => {
-  const push = prog(T, 0.3, 7.6);
-  const s = lerp(1, 1.55, push);
-  const deaf = cue("deaf");
-  const bub = prog(T, cue("class").start - 0.3, deaf.end - cue("class").start + 0.6);
-  const name = cue("mitu");
+  // Story order follows the voice: "This is Mitu." → "Her class is learning photosynthesis." →
+  // "Mitu is deaf, and the lesson isn't reaching her."
+  const a = cue("class").start - 0.1;
+  const b = cue("deaf").start - 0.1;
+  const mid = (a + b) / 2 + 0.2;
+  const first = 1 - prog(T, a - 0.3, 0.6);
   return (
-    <AbsoluteFill style={{ overflow: "hidden" }}>
-      <div style={{ width: 1920, height: 1080, transform: `scale(${s})`, transformOrigin: `${MITU.x}px ${MITU.y - 120}px` }}>
-        <Classroom t={T} bubbles={bub} mituGlow={prog(T, deaf.start, 0.8)} />
-        <div
-          style={{
-            position: "absolute",
-            left: MITU.x + 48,
-            top: MITU.y - 118,
-            ...rise(T, name.start, 14),
-            fontFamily: FONT,
-            fontSize: 24,
-            fontWeight: 700,
-            color: "#0f1218",
-            background: C.orange,
-            padding: "6px 14px",
-            borderRadius: 10,
-          }}
-        >
-          Mitu · <span lang="bn" style={{ fontFamily: FONT_BN }}>মিতু</span>
-        </div>
-      </div>
+    <AbsoluteFill>
+      {first > 0 && (
+        <AbsoluteFill style={{ opacity: first }}>
+          <StoryShot T={T} shot="S03-mitu-close" start={0} dur={2.4} from={1.1} to={1.14} focus={[50, 40]} tag={false} />
+        </AbsoluteFill>
+      )}
+      {T > a - 0.4 && T < mid + 0.4 && (
+        <AbsoluteFill style={{ opacity: shotOpacity(T, a, mid) }}>
+          <StoryShot T={T} shot="S01-classroom-wide" start={a - 0.3} dur={2.2} from={1.02} to={1.08} focus={[40, 45]} tag={false} />
+        </AbsoluteFill>
+      )}
+      {T > mid - 0.4 && T < b + 0.4 && (
+        <AbsoluteFill style={{ opacity: shotOpacity(T, mid, b) }}>
+          <StoryShot T={T} shot="S02-teacher-board" start={mid - 0.3} dur={2} from={1.03} to={1.08} focus={[60, 35]} tag={false} />
+        </AbsoluteFill>
+      )}
+      {T > b - 0.4 && (
+        <AbsoluteFill style={{ opacity: prog(T, b - 0.35, 0.7) }}>
+          <StoryShot T={T} shot="S03-mitu-close" start={b - 0.3} dur={4.4} from={1.04} to={1.2} focus={[52, 38]} tag={false} />
+        </AbsoluteFill>
+      )}
+      <DramaTag />
+      <LowerThird T={T} at={0.3} until={a - 0.45} title="Mitu, 11 · Class 6" bn="মিতু, ১১ · ষষ্ঠ শ্রেণি" />
+      <LowerThird T={T} at={b + 0.2} until={7.8} title="Mitu · deaf from birth" bn="মিতু · জন্ম থেকে বধির" />
+      <CompositeNote T={T} at={0.6} until={3.8} />
       <TopShade />
     </AbsoluteFill>
   );
@@ -151,8 +155,8 @@ export const WhyScene: React.FC<P> = ({ T }) => {
   const statsAt = cue("global").start;
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ opacity: 0.35, filter: "blur(6px)" }}>
-        <Classroom t={T} />
+      <AbsoluteFill style={{ opacity: 0.4 }}>
+        <StoryShot T={T} shot="S01-classroom-wide" start={8} dur={22} from={1.08} to={1.16} blur={7} tag={false} />
       </AbsoluteFill>
       <AbsoluteFill style={{ background: "rgba(15,18,24,0.80)" }} />
       <PressMontage T={T} />
@@ -233,6 +237,12 @@ export const MeetScene: React.FC<P> = ({ T }) => {
   const fly = prog(T, sc.start + 0.8, 0.9);
   return (
     <AbsoluteFill>
+      {/* Evening at home: Rahima and Mitu open Prism */}
+      <AbsoluteFill style={{ opacity: 0.55 }}>
+        <StoryShot T={T} shot="S06-home-laptop" start={sc.start - 0.3} dur={12} from={1.05} to={1.12} focus={[55, 45]} blur={2} tag={false} />
+      </AbsoluteFill>
+      <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(15,18,24,0.95) 0%, rgba(15,18,24,0.86) 42%, rgba(15,18,24,0.55) 70%, rgba(15,18,24,0.7) 100%)" }} />
+      <DramaTag />
       <div style={{ position: "absolute", left: 100, top: 170, width: 820 }}>
         <Kicker text={section("solution").kicker} bn={section("solution").bn} style={rise(T, sc.start + 0.1, 16)} />
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 26 }}>
@@ -434,7 +444,10 @@ export const SignWordsScene: React.FC<P> = ({ T }) => {
       </DemoLaptop>
       {home > 0 && (
         <div style={{ position: "absolute", left: 210, top: 250, width: 800, height: 560, opacity: home, transform: `scale(${0.94 + home * 0.06})`, borderRadius: 28, boxShadow: "0 30px 80px rgba(0,0,0,0.55)", overflow: "hidden" }}>
-          <HomeScene t={T} />
+          <StoryShot T={T} shot="S06-home-laptop" start={sc.start} dur={4} from={1.08} to={1.16} focus={[50, 42]} tag={false} />
+          <div style={{ position: "absolute", top: 14, right: 14, fontFamily: FONT, fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)", background: "rgba(8,10,14,0.62)", padding: "5px 10px", borderRadius: 8 }}>
+            Dramatisation · AI-generated
+          </div>
         </div>
       )}
       <ChapterText T={T} i={1} start={sc.start} rowsAt={[cue("parents").start, parts.start, fix.end + 1.2]} />
@@ -581,6 +594,7 @@ export const CloseScene: React.FC<P> = ({ T }) => {
   const r = COPY.impact.roadmap;
   const classIn = prog(T, tag.start - 0.4, 0.7);
   const endIn = prog(T, made.start + 0.6, 0.8);
+  const split = (tag.start + made.start) / 2 + 0.6;
   const e = COPY.end;
   return (
     <AbsoluteFill>
@@ -600,12 +614,28 @@ export const CloseScene: React.FC<P> = ({ T }) => {
           ))}
         </div>
       </div>
-      {/* Back to the classroom, in warm light */}
+      {/* Weeks later: Mitu answers, then Mitu and Rahima together */}
       {classIn > 0 && endIn < 1 && (
         <AbsoluteFill style={{ opacity: classIn * (1 - endIn) }}>
-          <div style={{ width: 1920, height: 1080, transform: `scale(${lerp(1.15, 1.05, prog(T, tag.start, 4))})`, transformOrigin: `${MITU.x - 200}px ${MITU.y - 200}px` }}>
-            <Classroom t={T} light={1} underline={prog(T, tag.start, 0.8)} card={prog(T, tag.start + 0.8, 0.6)} raise={prog(T, tag.start + 1.8, 0.7)} mituGlow={0.6} />
-          </div>
+          <AbsoluteFill style={{ opacity: 1 - prog(T, split - 0.35, 0.7) }}>
+            <StoryShot T={T} shot="S09-mitu-raises-hand" start={tag.start - 0.4} dur={3.6} from={1.04} to={1.12} focus={[58, 45]} tag={false}>
+              <div style={{ position: "absolute", left: 600, top: 650, ...rise(T, tag.start + 0.4, 20), fontFamily: FONT, background: "rgba(23,27,35,0.92)", border: `2px solid ${C.orange}`, borderRadius: 16, padding: "12px 18px", display: "flex", alignItems: "center", gap: 14, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+                <div style={{ width: 44, height: 44, borderRadius: 22, background: C.orange, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 0, height: 0, borderTop: "9px solid transparent", borderBottom: "9px solid transparent", borderLeft: "14px solid #11151c", marginLeft: 4 }} />
+                </div>
+                <div>
+                  <div lang="bn" style={{ fontFamily: FONT_BN, fontSize: 26, fontWeight: 700, color: "#fff" }}>সালোকসংশ্লেষণ</div>
+                  <div style={{ fontSize: 17, color: C.text2 }}>Photosynthesis · sign clip</div>
+                </div>
+              </div>
+            </StoryShot>
+          </AbsoluteFill>
+          {T > split - 0.4 && (
+            <AbsoluteFill style={{ opacity: prog(T, split - 0.35, 0.7) }}>
+              <StoryShot T={T} shot="S10-together" start={split - 0.3} dur={3.6} from={1.03} to={1.1} focus={[62, 45]} tag={false} />
+            </AbsoluteFill>
+          )}
+          <DramaTag />
           <TopShade />
         </AbsoluteFill>
       )}

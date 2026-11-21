@@ -32,3 +32,4 @@ __pycache__/
 /video/audio/
 /video/public/audio/
 /video/public/press/
+/video/people/*.jpg

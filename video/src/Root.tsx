@@ -1,9 +1,8 @@
 import React from "react";
-import { AbsoluteFill, Audio, Composition, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Audio, Composition, Img, staticFile, useCurrentFrame } from "remotion";
 import { BADGE, FPS, SECTIONS, TOTAL_SECONDS } from "./script";
 import { Background, Badge, BnLine, Captions, SectionBar, prog } from "./components/ui";
 import { SCENES } from "./scenes/Scenes";
-import { Classroom } from "./illus/Classroom";
 import { C, FONT } from "./theme";
 import timings from "./timings.json";
 
@@ -49,9 +48,7 @@ const Promo: React.FC = () => {
 
 const Thumbnail: React.FC = () => (
   <AbsoluteFill style={{ background: C.ink }}>
-    <div style={{ width: 1920, height: 1080, transform: "scale(0.6667)", transformOrigin: "0 0" }}>
-      <Classroom t={1} light={1} underline={1} card={1} raise={1} mituGlow={0.6} />
-    </div>
+    <Img src={staticFile("people/S10-together.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "70% 40%" }} />
     <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(15,18,24,0.94) 0%, rgba(15,18,24,0.85) 48%, rgba(15,18,24,0) 75%)" }} />
     <div style={{ position: "absolute", left: 64, top: 150, width: 640, fontFamily: FONT }}>
       <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "0.2em", color: C.orange }}>PRISM SIGN</div>
